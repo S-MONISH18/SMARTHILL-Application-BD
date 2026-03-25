@@ -9,10 +9,11 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAuth } from '../../context/AuthContext';
 import colors from '../../theme/colors';
 import spacing from '../../theme/spacing';
 import typography from '../../theme/typography';
+
+import { createUser } from '../../services/apiService';
 
 const roles = [
   { label: 'Farmer', value: 'farmer' },
@@ -21,8 +22,6 @@ const roles = [
 ];
 
 export default function SignupScreen({ navigation }) {
-  const { signup } = useAuth();
-
   const [form, setForm] = useState({
     name: '',
     phone: '',
@@ -35,16 +34,34 @@ export default function SignupScreen({ navigation }) {
     setForm(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleSignup = () => {
-    if (!form.name || !form.phone || !form.password || !form.location || !form.role) {
+  const handleSignup = async () => {
+    if (!form.name || !form.phone || !form.password || !form.location) {
       Alert.alert('Missing Information', 'Please fill in all fields.');
       return;
     }
 
-    const result = signup(form);
+    const user = {
+      userId: `user-${Date.now()}`,
+      name: form.name,
+      phone: form.phone,
+      password: form.password,
+      location: form.location,
+      role: form.role,
+      createdAt: Date.now(),
+    };
 
-    if (!result.success) {
-      Alert.alert('Signup Failed', result.message);
+    try {
+      const result = await createUser(user);
+
+      if (result.success) {
+        Alert.alert('Success ✅', 'Account created successfully');
+        navigation.navigate('Login');
+      } else {
+        Alert.alert('Error ❌', result.message || 'Signup failed');
+      }
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Error ❌', 'Something went wrong');
     }
   };
 
@@ -56,6 +73,7 @@ export default function SignupScreen({ navigation }) {
           Create your account and choose your role
         </Text>
 
+        {/* Name */}
         <Text style={styles.label}>Full Name</Text>
         <TextInput
           style={styles.input}
@@ -65,26 +83,29 @@ export default function SignupScreen({ navigation }) {
           placeholderTextColor={colors.textMuted}
         />
 
+        {/* Phone */}
         <Text style={styles.label}>Phone Number</Text>
         <TextInput
           style={styles.input}
           value={form.phone}
           onChangeText={value => updateField('phone', value)}
           placeholder="Enter phone number"
-          placeholderTextColor={colors.textMuted}
           keyboardType="phone-pad"
+          placeholderTextColor={colors.textMuted}
         />
 
+        {/* Password */}
         <Text style={styles.label}>Password</Text>
         <TextInput
           style={styles.input}
           value={form.password}
           onChangeText={value => updateField('password', value)}
           placeholder="Create password"
-          placeholderTextColor={colors.textMuted}
           secureTextEntry
+          placeholderTextColor={colors.textMuted}
         />
 
+        {/* Location */}
         <Text style={styles.label}>Location</Text>
         <TextInput
           style={styles.input}
@@ -94,6 +115,7 @@ export default function SignupScreen({ navigation }) {
           placeholderTextColor={colors.textMuted}
         />
 
+        {/* Role */}
         <Text style={styles.label}>Role</Text>
         <View style={styles.roleList}>
           {roles.map(item => {
@@ -112,6 +134,7 @@ export default function SignupScreen({ navigation }) {
           })}
         </View>
 
+        {/* Button */}
         <TouchableOpacity style={styles.primaryButton} onPress={handleSignup}>
           <Text style={styles.primaryButtonText}>Create Account</Text>
         </TouchableOpacity>

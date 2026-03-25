@@ -13,18 +13,27 @@ import AvailableTractorsScreen from '../screens/farmer/AvailableTractorsScreen';
 import SellProductsScreen from '../screens/farmer/SellProductsScreen';
 import FarmerProfileScreen from '../screens/farmer/FarmerProfileScreen';
 
-// 🔥 Booking screen (reuse same)
+// 🔥 Booking screen
 import BookTractorScreen from '../screens/tractorOwner/BookTractorScreen';
+
+// 🔔 Notifications
+import NotificationsScreen from '../screens/common/NotificationsScreen';
+
+// 🛒 NEW: Farmer Orders
+import FarmerOrderRequestsScreen from '../screens/farmer/FarmerOrderRequestsScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
+//////////////////////////////////////////////////////
+// TAB ICON
+//////////////////////////////////////////////////////
 const TabIcon = ({ symbol, color }) => (
   <Text style={{ fontSize: 18, color }}>{symbol}</Text>
 );
 
 //////////////////////////////////////////////////////
-// 🔥 STACK for Farmer Tractor Flow
+// 🚜 TRACTOR STACK
 //////////////////////////////////////////////////////
 function TractorStack() {
   return (
@@ -44,11 +53,12 @@ function TractorStack() {
 }
 
 //////////////////////////////////////////////////////
-// 🔥 MAIN TAB NAVIGATOR
+// MAIN TAB NAVIGATOR
 //////////////////////////////////////////////////////
 export default function FarmerTabNavigator() {
   return (
     <Tab.Navigator
+      initialRouteName="FarmerHome"
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
@@ -59,49 +69,87 @@ export default function FarmerTabNavigator() {
         },
       }}
     >
+      {/* 🏠 HOME */}
       <Tab.Screen
         name="FarmerHome"
         component={FarmerDashboardScreen}
         options={{
           tabBarLabel: 'Home',
-          tabBarIcon: ({ color }) => <TabIcon symbol="🏠" color={color} />,
+          tabBarIcon: ({ color }) => (
+            <TabIcon symbol="🏠" color={color} />
+          ),
         }}
       />
 
+      {/* 📊 FARM */}
       <Tab.Screen
         name="FarmData"
         component={FarmDataScreen}
         options={{
           tabBarLabel: 'Farm',
-          tabBarIcon: ({ color }) => <TabIcon symbol="📊" color={color} />,
+          tabBarIcon: ({ color }) => (
+            <TabIcon symbol="📊" color={color} />
+          ),
         }}
       />
 
-      {/* 🔥 IMPORTANT CHANGE */}
+      {/* 🚜 TRACTORS */}
       <Tab.Screen
         name="Tractors"
         component={TractorStack}
         options={{
           tabBarLabel: 'Tractors',
-          tabBarIcon: ({ color }) => <TabIcon symbol="🚜" color={color} />,
+          tabBarIcon: ({ color }) => (
+            <TabIcon symbol="🚜" color={color} />
+          ),
         }}
       />
 
+      {/* 🛒 ORDERS (🔥 IMPORTANT NEW) */}
+      <Tab.Screen
+        name="Orders"
+        component={FarmerOrderRequestsScreen}
+        options={{
+          tabBarLabel: 'Orders',
+          tabBarIcon: ({ color }) => (
+            <TabIcon symbol="📦" color={color} />
+          ),
+        }}
+      />
+
+      {/* 🔔 NOTIFICATIONS */}
+      <Tab.Screen
+        name="Notifications"
+        component={NotificationsScreen}
+        options={{
+          tabBarLabel: 'Alerts',
+          tabBarIcon: ({ color }) => (
+            <TabIcon symbol="🔔" color={color} />
+          ),
+        }}
+      />
+
+      {/* 🛒 SELL */}
       <Tab.Screen
         name="SellProducts"
         component={SellProductsScreen}
         options={{
           tabBarLabel: 'Sell',
-          tabBarIcon: ({ color }) => <TabIcon symbol="🛒" color={color} />,
+          tabBarIcon: ({ color }) => (
+            <TabIcon symbol="🛒" color={color} />
+          ),
         }}
       />
 
+      {/* 👤 PROFILE */}
       <Tab.Screen
         name="FarmerProfile"
         component={FarmerProfileScreen}
         options={{
           tabBarLabel: 'Profile',
-          tabBarIcon: ({ color }) => <TabIcon symbol="👤" color={color} />,
+          tabBarIcon: ({ color }) => (
+            <TabIcon symbol="👤" color={color} />
+          ),
         }}
       />
     </Tab.Navigator>

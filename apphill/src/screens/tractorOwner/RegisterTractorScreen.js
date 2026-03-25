@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { ScrollView, StyleSheet, View, Text, Switch, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import { useAuth } from '../../context/AuthContext';
+import { registerTractor } from '../../services/apiService';
 import colors from '../../theme/colors';
 import spacing from '../../theme/spacing';
 import typography from '../../theme/typography';
@@ -10,34 +13,19 @@ import PrimaryButton from '../../components/PrimaryButton';
 import Badge from '../../components/Badge';
 
 export default function RegisterTractorScreen() {
+  const navigation = useNavigation();
+  const { currentUser } = useAuth();
   const [available, setAvailable] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    ownerName: '',
-    email: '',
-    phone: '',
     location: '',
-    tractorModel: '',
-    tractorNumber: '',
-    horsepower: '',
-    fuelType: '',
-    hourlyRate: '',
+    model: '',
+    number: '',
     dailyRate: '',
   });
 
-  const handleSubmit = () => {
-    const requiredFields = [
-      'ownerName',
-      'email',
-      'phone',
-      'location',
-      'tractorModel',
-      'tractorNumber',
-      'horsepower',
-      'fuelType',
-      'hourlyRate',
-      'dailyRate',
-    ];
-
+  const handleSubmit = async () => {
+    const requiredFields = ['location', 'model', 'number', 'dailyRate'];
     const missingFields = requiredFields.filter(field => !formData[field]);
 
     if (missingFields.length > 0) {
@@ -45,11 +33,45 @@ export default function RegisterTractorScreen() {
       return;
     }
 
-    Alert.alert(
-      'Registration Successful',
-      'Your tractor has been registered and is now available for rent!',
-      [{ text: 'OK' }]
-    );
+    if (!currentUser?.phone) {
+      Alert.alert('Error', 'User phone not available');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const tractorData = {
+        ownerPhone: currentUser.phone,
+        model: formData.model,
+        number: formData.number,
+        location: formData.location,
+        dailyRate: formData.dailyRate,
+        status: available ? 'Available' : 'Unavailable',
+      };
+
+      const response = await registerTractor(tractorData);
+
+      if (response.success) {
+        Alert.alert(
+          'Registration Successful ✅',
+          'Your tractor has been registered and is now available for rent!',
+          [
+            {
+              text: 'OK',
+              onPress: () => navigation.goBack(),
+            },
+          ]
+        );
+      } else {
+        Alert.alert('Error', response.message || 'Failed to register tractor');
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+      Alert.alert('Error', 'Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const updateFormData = (field, value) => {
@@ -67,27 +89,21 @@ export default function RegisterTractorScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={[typography.h3, styles.sectionTitle]}>Owner Information</Text>
+          <Text style={[typography.h3, styles.sectionTitle]}>Tractor Details</Text>
           <AppCard>
             <InputField
-              label="Full Name *"
-              placeholder="Enter your full name"
-              value={formData.ownerName}
-              onChangeText={value => updateFormData('ownerName', value)}
+              label="Tractor Model *"
+              placeholder="e.g. Mahindra 575 DI"
+              value={formData.model}
+              onChangeText={value => updateFormData('model', value)}
+              icon={<Text>🚜</Text>}
             />
             <InputField
-              label="Email Address *"
-              placeholder="your.email@example.com"
-              value={formData.email}
-              onChangeText={value => updateFormData('email', value)}
-              icon={<Text>📧</Text>}
-            />
-            <InputField
-              label="Phone Number *"
-              placeholder="+91 98765 43210"
-              value={formData.phone}
-              onChangeText={value => updateFormData('phone', value)}
-              icon={<Text>📱</Text>}
+              label="Registration Number *"
+              placeholder="e.g. TN-36K-8077"
+              value={formData.number}
+              onChangeText={value => updateFormData('number', value)}
+              icon={<Text>🆔</Text>}
             />
             <InputField
               label="Location *"
@@ -100,79 +116,21 @@ export default function RegisterTractorScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={[typography.h3, styles.sectionTitle]}>Tractor Details</Text>
-          <AppCard>
-            <InputField
-              label="Tractor Model *"
-              placeholder="e.g. Mahindra 575 DI"
-              value={formData.tractorModel}
-              onChangeText={value => updateFormData('tractorModel', value)}
-              icon={<Text>🚜</Text>}
-            />
-            <InputField
-              label="Registration Number *"
-              placeholder="e.g. TN-36K-8077"
-              value={formData.tractorNumber}
-              onChangeText={value => updateFormData('tractorNumber', value)}
-              icon={<Text>🆔</Text>}
-            />
-            <View style={styles.row}>
-              <View style={styles.halfField}>
-                <InputField
-                  label="Horsepower *"
-                  placeholder="47"
-                  value={formData.horsepower}
-                  onChangeText={value => updateFormData('horsepower', value)}
-                  icon={<Text>⚡</Text>}
-                />
-              </View>
-              <View style={styles.halfField}>
-                <InputField
-                  label="Fuel Type *"
-                  placeholder="Diesel"
-                  value={formData.fuelType}
-                  onChangeText={value => updateFormData('fuelType', value)}
-                  icon={<Text>⛽</Text>}
-                />
-              </View>
-            </View>
-          </AppCard>
-        </View>
-
-        <View style={styles.section}>
           <Text style={[typography.h3, styles.sectionTitle]}>Rental Pricing</Text>
           <AppCard>
-            <View style={styles.row}>
-              <View style={styles.halfField}>
-                <InputField
-                  label="Hourly Rate (₹) *"
-                  placeholder="500"
-                  value={formData.hourlyRate}
-                  onChangeText={value => updateFormData('hourlyRate', value)}
-                  keyboardType="numeric"
-                  icon={<Text>🕐</Text>}
-                />
-              </View>
-              <View style={styles.halfField}>
-                <InputField
-                  label="Daily Rate (₹) *"
-                  placeholder="3500"
-                  value={formData.dailyRate}
-                  onChangeText={value => updateFormData('dailyRate', value)}
-                  keyboardType="numeric"
-                  icon={<Text>📅</Text>}
-                />
-              </View>
-            </View>
+            <InputField
+              label="Daily Rate (₹) *"
+              placeholder="3500"
+              value={formData.dailyRate}
+              onChangeText={value => updateFormData('dailyRate', value)}
+              keyboardType="numeric"
+              icon={<Text>📅</Text>}
+            />
 
-            {formData.hourlyRate && formData.dailyRate ? (
+            {formData.dailyRate ? (
               <View style={styles.pricePreview}>
                 <Text style={[typography.bodySmall, styles.previewLabel]}>Price Preview</Text>
                 <View style={styles.previewRow}>
-                  <View style={styles.previewItem}>
-                    <Text style={[typography.caption, styles.previewType]}>Hourly</Text>
-                    <Text style={[typography.h4, styles.previewPrice]}>₹{formData.hourlyRate}</Text>
-                  </View>
                   <View style={styles.previewItem}>
                     <Text style={[typography.caption, styles.previewType]}>Daily</Text>
                     <Text style={[typography.h4, styles.previewPrice]}>₹{formData.dailyRate}</Text>
@@ -214,9 +172,10 @@ export default function RegisterTractorScreen() {
 
         <View style={styles.submitSection}>
           <PrimaryButton
-            title="Register Tractor"
+            title={loading ? 'Registering...' : 'Register Tractor'}
             onPress={handleSubmit}
             style={styles.submitButton}
+            disabled={loading}
           />
           <Text style={[typography.caption, styles.disclaimer]}>
             By registering, you agree to our terms and conditions. All rentals are subject to verification.
@@ -256,13 +215,6 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
     color: colors.primary,
   },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  halfField: {
-    width: '48%',
-  },
   pricePreview: {
     marginTop: spacing.lg,
     padding: spacing.lg,
@@ -275,10 +227,9 @@ const styles = StyleSheet.create({
   },
   previewRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'space-around',
   },
   previewItem: {
-    flex: 1,
     alignItems: 'center',
   },
   previewType: {
@@ -298,23 +249,23 @@ const styles = StyleSheet.create({
     marginRight: spacing.lg,
   },
   availabilityLabel: {
-    marginBottom: spacing.xs / 2,
+    color: colors.text,
+    marginBottom: spacing.xs,
   },
   availabilityHint: {
-    color: colors.textMuted,
+    color: colors.textSecondary,
   },
   statusIndicator: {
-    alignItems: 'flex-start',
+    alignItems: 'center',
   },
   submitSection: {
-    marginTop: spacing.xl,
+    marginTop: spacing.lg,
   },
   submitButton: {
-    marginBottom: spacing.md,
+    marginBottom: spacing.lg,
   },
   disclaimer: {
-    color: colors.textMuted,
+    color: colors.textSecondary,
     textAlign: 'center',
-    lineHeight: 16,
   },
 });

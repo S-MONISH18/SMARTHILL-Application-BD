@@ -5,11 +5,16 @@ import {
   StyleSheet,
   TouchableOpacity,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
+import { useAuth } from '../../context/AuthContext';
+import { bookTractor } from '../../services/apiService';
+
 export default function BookTractorScreen({ route, navigation }) {
   const { tractor } = route.params;
+  const { currentUser } = useAuth();
 
   const [fromDateTime, setFromDateTime] = useState(null);
   const [toDateTime, setToDateTime] = useState(null);
@@ -20,7 +25,12 @@ export default function BookTractorScreen({ route, navigation }) {
   const [showToDate, setShowToDate] = useState(false);
   const [showToTime, setShowToTime] = useState(false);
 
-  const formatDateTime = date =>
+  const [loading, setLoading] = useState(false);
+
+  //////////////////////////////////////////////////////
+  // FORMAT DATE
+  //////////////////////////////////////////////////////
+  const formatDateTime = (date) =>
     date
       ? `${date.toISOString().split('T')[0]} ${date.toLocaleTimeString([], {
           hour: '2-digit',
@@ -28,19 +38,18 @@ export default function BookTractorScreen({ route, navigation }) {
         })}`
       : 'Select Date & Time';
 
-  // FROM DATE
+  //////////////////////////////////////////////////////
+  // DATE PICKERS
+  //////////////////////////////////////////////////////
   const onChangeFromDate = (e, selected) => {
     setShowFromDate(false);
     if (selected) {
       const updated = new Date(selected);
-      setFromDateTime(prev =>
-        prev ? new Date(updated.setHours(prev.getHours(), prev.getMinutes())) : updated
-      );
+      setFromDateTime(updated);
       setShowFromTime(true);
     }
   };
 
-  // FROM TIME
   const onChangeFromTime = (e, selected) => {
     setShowFromTime(false);
     if (selected && fromDateTime) {
@@ -50,19 +59,15 @@ export default function BookTractorScreen({ route, navigation }) {
     }
   };
 
-  // TO DATE
   const onChangeToDate = (e, selected) => {
     setShowToDate(false);
     if (selected) {
       const updated = new Date(selected);
-      setToDateTime(prev =>
-        prev ? new Date(updated.setHours(prev.getHours(), prev.getMinutes())) : updated
-      );
+      setToDateTime(updated);
       setShowToTime(true);
     }
   };
 
-  // TO TIME
   const onChangeToTime = (e, selected) => {
     setShowToTime(false);
     if (selected && toDateTime) {
@@ -72,11 +77,15 @@ export default function BookTractorScreen({ route, navigation }) {
     }
   };
 
+  //////////////////////////////////////////////////////
   // CALCULATE HOURS
+  //////////////////////////////////////////////////////
   const calculateHours = () => {
     if (!fromDateTime || !toDateTime) return 0;
+
     const diff =
       (toDateTime.getTime() - fromDateTime.getTime()) / (1000 * 60 * 60);
+
     return diff > 0 ? Math.ceil(diff) : 0;
   };
 
@@ -88,34 +97,59 @@ export default function BookTractorScreen({ route, navigation }) {
         Math.ceil(hours / 24) * parseInt(tractor.dailyRate)
       : 0;
 
-  const handleBooking = () => {
+  //////////////////////////////////////////////////////
+  // 🔥 HANDLE BOOKING (CONNECTED TO BACKEND)
+  //////////////////////////////////////////////////////
+  const handleBooking = async () => {
     if (!fromDateTime || !toDateTime) {
       Alert.alert('Error', 'Select date & time');
       return;
     }
 
     if (hours <= 0) {
-      Alert.alert('Error', 'Invalid time selection');
+      Alert.alert('Error', 'Invalid time');
       return;
     }
 
-    Alert.alert(
-      'Booking Confirmed',
-      `Hours: ${hours}\nTotal: ₹${total}`
-    );
+    setLoading(true);
 
-    navigation.goBack();
+    const result = await bookTractor({
+      tractorId: tractor.id,
+      tractorModel: tractor.tractorModel,
+      ownerName: tractor.ownerName,
+      ownerPhone: tractor.phone, // 🔥 important
+      farmerPhone: currentUser.phone,
+      fromDate: fromDateTime.toISOString(),
+      toDate: toDateTime.toISOString(),
+      hours,
+      total,
+    });
+
+    setLoading(false);
+
+    if (result.success) {
+      Alert.alert(
+        'Success',
+        `Booking Confirmed\nHours: ${hours}\nTotal: ₹${total}`
+      );
+      navigation.goBack();
+    } else {
+      Alert.alert('Error', result.message || 'Booking failed');
+    }
   };
 
+  //////////////////////////////////////////////////////
+  // UI
+  //////////////////////////////////////////////////////
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Book Tractor</Text>
 
       <Text style={styles.label}>Model</Text>
-      <Text style={styles.value}>{tractor.model}</Text>
+      <Text style={styles.value}>{tractor.tractorModel}</Text>
 
-      <Text style={styles.label}>Daily Rate</Text>
-      <Text style={styles.value}>₹{tractor.dailyRate}</Text>
+      <Text style={styles.label}>Hourly Rate</Text>
+      <Text style={styles.value}>₹{tractor.hourlyRate}</Text>
 
       {/* FROM */}
       <Text style={styles.label}>From</Text>
@@ -175,12 +209,19 @@ export default function BookTractorScreen({ route, navigation }) {
 
       {/* BUTTON */}
       <TouchableOpacity style={styles.button} onPress={handleBooking}>
-        <Text style={styles.buttonText}>Confirm Booking</Text>
+        {loading ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.buttonText}>Confirm Booking</Text>
+        )}
       </TouchableOpacity>
     </View>
   );
 }
 
+//////////////////////////////////////////////////////
+// STYLES
+//////////////////////////////////////////////////////
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20 },
   title: { fontSize: 22, fontWeight: 'bold', marginBottom: 20 },
