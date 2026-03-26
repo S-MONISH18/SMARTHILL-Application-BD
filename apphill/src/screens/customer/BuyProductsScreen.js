@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   ScrollView,
   View,
@@ -7,7 +7,6 @@ import {
   Image,
   TouchableOpacity,
   Alert,
-  Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import NetInfo from '@react-native-community/netinfo';
@@ -18,18 +17,15 @@ import spacing from '../../theme/spacing';
 import typography from '../../theme/typography';
 
 // 🔥 IMPORT API + AUTH
-import { buyProduct } from '../../services/apiService';
+import { buyProduct, getProducts } from '../../services/apiService';
 import { useAuth } from '../../context/AuthContext';
 
 export default function BuyProductsScreen() {
   const { currentUser } = useAuth();
 
-  const [isOfflineMode, setIsOfflineMode] = useState(false);
+  const [isOfflineMode] = useState(false);
   const [products, setProducts] = useState(farmerProducts);
   const [currentIP, setCurrentIP] = useState(null);
-
-  const LOCAL_IP = '192.168.1.100';
-  const LOCAL_API = `http://${LOCAL_IP}:3000`;
 
   //////////////////////////////////////////////////////
   // NETWORK DETECTION
@@ -56,30 +52,30 @@ export default function BuyProductsScreen() {
   //////////////////////////////////////////////////////
   // FETCH PRODUCTS
   //////////////////////////////////////////////////////
-  useEffect(() => {
-    fetchProductData();
-  }, [isOfflineMode, currentIP]);
-
-  const fetchProductData = async () => {
+  const fetchProductData = useCallback(async () => {
     if (isOfflineMode) {
       setProducts(farmerProducts);
       return;
     }
 
     try {
-      const res = await fetch('http://10.0.2.2:3000/products');
-      const data = await res.json();
+      const data = await getProducts();
 
       if (data.success) {
         setProducts(data.data);
         return;
       }
+      console.log('buy products: non-success api', data);
     } catch (e) {
-      console.log('Fallback to mock');
+      console.log('Fallback to mock', e);
     }
 
     setProducts(farmerProducts);
-  };
+  }, [isOfflineMode]);
+
+  useEffect(() => {
+    fetchProductData();
+  }, [fetchProductData, currentIP]);
 
   //////////////////////////////////////////////////////
   // 🔥 BUY PRODUCT FUNCTION
@@ -89,7 +85,9 @@ export default function BuyProductsScreen() {
       const result = await buyProduct({
         productName: item.productName,
         farmerName: item.farmerName,
+        farmerPhone: item.farmerPhone || item.phone || null,
         buyerPhone: currentUser.phone,
+        buyerName: currentUser.name || null,
         quantity: item.quantity,
         price: item.price,
       });
@@ -119,7 +117,7 @@ export default function BuyProductsScreen() {
         </Text>
 
         {products.map(item => (
-          <View key={item.id} style={styles.card}>
+          <View key={item.productId || item.id || `${item.productName}-${item.farmerPhone}` } style={styles.card}>
 
             <Image
               source={{ uri: item.image || 'https://via.placeholder.com/150' }}

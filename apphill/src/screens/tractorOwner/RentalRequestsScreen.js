@@ -20,6 +20,7 @@ import { useAuth } from '../../context/AuthContext';
 import {
   getOwnerRequests,
   updateBookingStatus,
+  deleteBooking,
 } from '../../services/apiService';
 
 export default function RentalRequestsScreen() {
@@ -32,10 +33,18 @@ export default function RentalRequestsScreen() {
   // 🔥 LOAD DATA
   //////////////////////////////////////////////////////
   const loadRequests = async () => {
-    const res = await getOwnerRequests(currentUser.name);
+    const ownerId = currentUser.phone || currentUser.name;
+    console.log('📲 LOADING REQUESTS FOR OWNER:', ownerId);
+    const res = await getOwnerRequests(ownerId);
 
     if (res.success) {
-      setRequests(res.data || []);
+      console.log('📥 RECEIVED REQUESTS:', JSON.stringify(res.data, null, 2));
+      // Sort: Pending first, then Accepted, then Rejected at bottom
+      const sorted = (res.data || []).sort((a, b) => {
+        const statusOrder = { 'Pending': 0, 'Accepted': 1, 'Rejected': 2 };
+        return (statusOrder[a.status] || 999) - (statusOrder[b.status] || 999);
+      });
+      setRequests(sorted);
     }
   };
 
@@ -68,6 +77,43 @@ export default function RentalRequestsScreen() {
     } else {
       Alert.alert('Error', 'Failed to update booking');
     }
+  };
+
+  //////////////////////////////////////////////////////
+  // 🗑️ DELETE BOOKING
+  //////////////////////////////////////////////////////
+  const handleDelete = async (bookingId) => {
+    Alert.alert(
+      'Delete Request',
+      'Are you sure you want to delete this booking request?',
+      [
+        { text: 'Cancel', onPress: () => {}, style: 'cancel' },
+        {
+          text: 'Delete',
+          onPress: async () => {
+            if (!bookingId) {
+              console.error('Delete action failed: bookingId missing');
+              Alert.alert('Error', 'Booking ID missing, cannot delete.');
+              return;
+            }
+
+            setLoadingId(bookingId);
+            console.log('📤 Deleting booking:', bookingId);
+            const res = await deleteBooking(bookingId);
+            console.log('📤 Delete booking response:', res);
+            setLoadingId(null);
+
+            if (res.success) {
+              Alert.alert('Success', 'Booking deleted');
+              loadRequests();
+            } else {
+              Alert.alert('Error', `Failed to delete booking: ${res.message || 'Unknown'}`);
+            }
+          },
+          style: 'destructive',
+        },
+      ]
+    );
   };
 
   //////////////////////////////////////////////////////
@@ -104,23 +150,36 @@ export default function RentalRequestsScreen() {
             <View style={styles.headerRow}>
               <View style={styles.headerInfo}>
                 <Text style={[typography.h4, styles.requester]}>
-                  Farmer: {item.farmerPhone}
+                  {item.farmerName || 'Unknown Farmer'}
+                </Text>
+                <Text style={[typography.body, styles.phone]}>
+                  📞 {item.farmerPhone}
                 </Text>
                 <Text style={[typography.caption, styles.role]}>
                   Booking Request
                 </Text>
               </View>
 
-              <Badge
-                text={item.status}
-                variant={
-                  item.status === 'Accepted'
-                    ? 'success'
-                    : item.status === 'Rejected'
-                    ? 'danger'
-                    : 'default'
-                }
-              />
+              <View style={styles.headerActions}>
+                <View style={styles.badgeWrapper}>
+                  <Badge
+                    text={item.status}
+                    variant={
+                      item.status === 'Accepted'
+                        ? 'success'
+                        : item.status === 'Rejected'
+                        ? 'danger'
+                        : 'default'
+                    }
+                  />
+                </View>
+                <TouchableOpacity
+                  style={styles.deleteButton}
+                  onPress={() => handleDelete(item.bookingId || item.id)}
+                >
+                  <Text style={styles.deleteButtonText}>Delete</Text>
+                </TouchableOpacity>
+              </View>
             </View>
 
             {/* TRACTOR */}
@@ -218,12 +277,45 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: spacing.sm,
+  },
+
+  badgeWrapper: {
+    marginRight: spacing.sm,
+  },
+
   requester: {
     color: colors.text,
   },
 
+  phone: {
+    color: colors.primary,
+    fontWeight: '600',
+    marginVertical: spacing.xs,
+  },
+
   role: {
     color: colors.textSecondary,
+  },
+
+  deleteButton: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: 8,
+    backgroundColor: '#DC2626',
+    justifyContent: 'center',
+    alignItems: 'center',
+    minWidth: 70,
+  },
+
+  deleteButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 
   infoBlock: {

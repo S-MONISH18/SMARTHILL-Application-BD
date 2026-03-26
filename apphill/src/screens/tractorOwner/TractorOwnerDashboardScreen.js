@@ -1,22 +1,99 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, RefreshControl } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import colors from '../../theme/colors';
 import spacing from '../../theme/spacing';
 import typography from '../../theme/typography';
 import AppCard from '../../components/AppCard';
 import { useAuth } from '../../context/AuthContext';
 import Badge from '../../components/Badge';
+import { getTractors, getOwnerRequests } from '../../services/apiService';
 
 export default function TractorOwnerDashboardScreen() {
-  const tractors = 3;
-  const activeListings = 2;
-  const requests = 5;
-  const earnings = '₹12,500';
+  const { currentUser } = useAuth();
+  const [tractors, setTractors] = useState(0);
+  const [activeListings, setActiveListings] = useState(0);
+  const [requests, setRequests] = useState(0);
+  const [earnings, setEarnings] = useState('₹0');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadDashboardData();
+  }, [currentUser]);
+
+  // Refresh data when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      loadDashboardData();
+    }, [currentUser])
+  );
+
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true);
+      const ownerPhone = currentUser?.phone;
+      let available = 0;
+
+      if (!ownerPhone) {
+        setLoading(false);
+        return;
+      }
+
+      // 🚜 Fetch tractors
+      const tractorsRes = await getTractors(ownerPhone);
+      if (tractorsRes.success && Array.isArray(tractorsRes.data)) {
+        setTractors(tractorsRes.data.length);
+        available = tractorsRes.data.filter(
+          (t) => t.status === 'Available'
+        ).length;
+        setActiveListings(available);
+      }
+
+      // 📩 Fetch requests
+      const requestsRes = await getOwnerRequests(ownerPhone);
+      if (requestsRes.success && Array.isArray(requestsRes.data)) {
+        const allRequests = requestsRes.data;
+        setRequests(allRequests.length);
+
+        // 💰 Calculate earnings from ACCEPTED requests
+        const acceptedRequests = allRequests.filter(
+          (r) => r.status === 'Accepted'
+        );
+        const totalEarnings = acceptedRequests.reduce((sum, request) => {
+          const cost = parseInt(request.total) || 0;
+          return sum + cost;
+        }, 0);
+
+        setEarnings(`₹${totalEarnings.toLocaleString('en-IN')}`);
+
+        console.log('📊 DASHBOARD DATA:', {
+          total_tractors: tractorsRes.data?.length,
+          active_listings: available,
+          all_requests: allRequests.length,
+          accepted_requests: acceptedRequests.length,
+          total_earnings: totalEarnings,
+        });
+      }
+    } catch (error) {
+      console.error('Dashboard load error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView 
+        contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl
+            refreshing={loading}
+            onRefresh={loadDashboardData}
+            tintColor={colors.primary}
+          />
+        }
+      >
         <View style={styles.header}>
           <Text style={[typography.caption, styles.headerTag]}>Tractor Owner</Text>
           <Text style={[typography.h1, styles.title]}>Dashboard</Text>

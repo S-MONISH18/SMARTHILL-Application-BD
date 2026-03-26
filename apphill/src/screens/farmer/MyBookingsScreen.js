@@ -14,22 +14,11 @@ import spacing from '../../theme/spacing';
 import typography from '../../theme/typography';
 import AppCard from '../../components/AppCard';
 import { useAuth } from '../../context/AuthContext';
+import { getBookings } from '../../services/apiService';
 
 //////////////////////////////////////////////////////
-// 🔥 API CALL
+// SCREEN
 //////////////////////////////////////////////////////
-const BASE_URL = 'http://10.0.2.2:3000';
-
-const getBookings = async (phone) => {
-  try {
-    const res = await fetch(`${BASE_URL}/bookings/${phone}`);
-    const data = await res.json();
-    return data;
-  } catch (e) {
-    console.error(e);
-    return { success: false };
-  }
-};
 
 //////////////////////////////////////////////////////
 // SCREEN

@@ -93,12 +93,12 @@ export default function BookTractorScreen({ route, navigation }) {
 
   const total =
     hours > 0
-      ? hours * parseInt(tractor.hourlyRate || 0) ||
-        Math.ceil(hours / 24) * parseInt(tractor.dailyRate)
+      ? hours * parseInt(tractor?.hourlyRate || tractor?.rate || 0) ||
+        Math.ceil(hours / 24) * parseInt(tractor?.dailyRate || 0)
       : 0;
 
   //////////////////////////////////////////////////////
-  // 🔥 HANDLE BOOKING (CONNECTED TO BACKEND)
+  // HANDLE BOOKING (FINAL FIX)
   //////////////////////////////////////////////////////
   const handleBooking = async () => {
     if (!fromDateTime || !toDateTime) {
@@ -113,29 +113,103 @@ export default function BookTractorScreen({ route, navigation }) {
 
     setLoading(true);
 
-    const result = await bookTractor({
-      tractorId: tractor.id,
-      tractorModel: tractor.tractorModel,
-      ownerName: tractor.ownerName,
-      ownerPhone: tractor.phone, // 🔥 important
-      farmerPhone: currentUser.phone,
+    //////////////////////////////////////////////////////
+    // ✅ NORMALIZE DATA (MAIN FIX)
+    //////////////////////////////////////////////////////
+    const normalizedTractor = {
+      id: tractor?.id || tractor?._id || "temp-id",
+
+      tractorModel:
+        tractor?.tractorModel ||
+        tractor?.model ||
+        tractor?.name ||
+        "Default Tractor",
+
+      ownerName:
+        tractor?.ownerName ||
+        tractor?.owner ||
+        tractor?.userName ||
+        "Owner",
+
+      ownerPhone:
+        tractor?.ownerPhone ||
+        tractor?.phone ||
+        tractor?.mobile ||
+        "9999999999",
+
+      hourlyRate: parseInt(tractor?.hourlyRate || tractor?.rate || 0),
+    };
+
+    const farmerPhone =
+      currentUser?.phone ||
+      currentUser?.mobile ||
+      currentUser?.userId ||
+      "8888888888";
+
+    // 🔥 AGGRESSIVE NAME EXTRACTION - Try multiple field names and patterns
+    let farmerName = null;
+    
+    // Try direct fields
+    if (currentUser?.name && currentUser.name.trim()) {
+      farmerName = currentUser.name.trim();
+    } else if (currentUser?.userName && currentUser.userName.trim()) {
+      farmerName = currentUser.userName.trim();
+    } else if (currentUser?.displayName && currentUser.displayName.trim()) {
+      farmerName = currentUser.displayName.trim();
+    } else if (currentUser?.fullName && currentUser.fullName.trim()) {
+      farmerName = currentUser.fullName.trim();
+    } else if (currentUser?.userId) {
+      // Use userId if nothing else available
+      farmerName = currentUser.userId;
+    } else {
+      // Final fallback
+      farmerName = "User";
+    }
+
+    //////////////////////////////////////////////////////
+    // 🔍 DEBUG (KEEP THIS)
+    //////////////////////////////////////////////////////
+    console.log("📱 CURRENT USER OBJECT:", currentUser);
+    console.log("📱 CURRENT USER FULL JSON:", JSON.stringify(currentUser, null, 2));
+    console.log("✅ FARMER NAME EXTRACTED:", farmerName);
+    console.log("✅ FARMER PHONE:", farmerPhone);
+
+    //////////////////////////////////////////////////////
+    // FINAL PAYLOAD
+    //////////////////////////////////////////////////////
+    const payload = {
+      tractorId: normalizedTractor.id,
+      tractorModel: normalizedTractor.tractorModel,
+      ownerName: normalizedTractor.ownerName,
+      ownerPhone: normalizedTractor.ownerPhone,
+      farmerPhone: farmerPhone,
+      farmerName: farmerName,
       fromDate: fromDateTime.toISOString(),
       toDate: toDateTime.toISOString(),
       hours,
       total,
-    });
+    };
+
+    console.log('🚀 FINAL PAYLOAD:', payload);
+
+    try {
+      const result = await bookTractor(payload);
+
+      if (result?.success) {
+        Alert.alert(
+          'Success',
+          `Booking Confirmed\nHours: ${hours}\nTotal: ₹${total}`
+        );
+        navigation.goBack();
+      } else {
+        Alert.alert('Error', result?.message || 'Booking failed');
+      }
+    } catch (error) {
+      console.error('❌ Booking error:', error);
+      Alert.alert('Error', 'Something went wrong');
+    }
 
     setLoading(false);
-
-    if (result.success) {
-      Alert.alert(
-        'Success',
-        `Booking Confirmed\nHours: ${hours}\nTotal: ₹${total}`
-      );
-      navigation.goBack();
-    } else {
-      Alert.alert('Error', result.message || 'Booking failed');
-    }
   };
 
   //////////////////////////////////////////////////////
@@ -146,10 +220,12 @@ export default function BookTractorScreen({ route, navigation }) {
       <Text style={styles.title}>Book Tractor</Text>
 
       <Text style={styles.label}>Model</Text>
-      <Text style={styles.value}>{tractor.tractorModel}</Text>
+      <Text style={styles.value}>
+        {tractor?.tractorModel || tractor?.model || 'N/A'}
+      </Text>
 
       <Text style={styles.label}>Hourly Rate</Text>
-      <Text style={styles.value}>₹{tractor.hourlyRate}</Text>
+      <Text style={styles.value}>₹{tractor?.hourlyRate || tractor?.rate}</Text>
 
       {/* FROM */}
       <Text style={styles.label}>From</Text>

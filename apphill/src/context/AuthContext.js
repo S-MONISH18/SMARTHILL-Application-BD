@@ -26,6 +26,7 @@ export const AuthProvider = ({ children }) => {
         return { success: false, message: 'Wrong role selected' };
       }
 
+      console.log('✅ LOGIN USER OBJECT:', JSON.stringify(result.user, null, 2));
       setCurrentUser(result.user);
 
       return { success: true };
@@ -48,8 +49,14 @@ export const AuthProvider = ({ children }) => {
         return { success: false, message: result.message || 'Signup failed' };
       }
 
-      // 🔥 OPTIONAL: auto login after signup
-      setCurrentUser(userData);
+      // 🔥 IMPORTANT: Set the full user object with all fields from backend
+      // This ensures name and other fields are properly stored
+      setCurrentUser({
+        userId: userData.phone,
+        name: userData.name || userData.phone,
+        phone: userData.phone,
+        role: userData.role,
+      });
 
       return { success: true };
     } catch (error) {

@@ -41,6 +41,17 @@ export default function CustomerDashboardScreen() {
           Tractor listings available for rent.
         </Text>
       </TouchableOpacity>
+
+      {/* ✅ Register Tractor (earn money!) */}
+      <TouchableOpacity
+        style={[styles.card, styles.registerCard]}
+        onPress={() => navigation.navigate('RegisterTractorScreen')}
+      >
+        <Text style={styles.cardTitle}>Register Tractor 🚜</Text>
+        <Text style={styles.cardText}>
+          List your tractor for rent and earn money.
+        </Text>
+      </TouchableOpacity>
     </SafeAreaView>
   );
 }
@@ -66,6 +77,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.borderLight,
     marginBottom: spacing.md,
+  },
+  registerCard: {
+    borderColor: colors.primary,
+    borderWidth: 2,
+    backgroundColor: colors.primary + '15',
   },
   cardTitle: {
     ...typography.h4,

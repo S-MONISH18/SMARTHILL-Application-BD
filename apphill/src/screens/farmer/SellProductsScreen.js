@@ -7,8 +7,12 @@ import typography from '../../theme/typography';
 import AppCard from '../../components/AppCard';
 import InputField from '../../components/InputField';
 import PrimaryButton from '../../components/PrimaryButton';
+import { addProduct } from '../../services/apiService';
+import { useAuth } from '../../context/AuthContext';
 
 export default function SellProductsScreen() {
+  const { currentUser } = useAuth();
+
   const [form, setForm] = useState({
     productName: '',
     category: '',
@@ -22,16 +26,44 @@ export default function SellProductsScreen() {
     setForm(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleUpload = () => {
+  const handleUpload = async () => {
     const required = ['productName', 'category', 'quantity', 'price', 'location'];
-    const missing = required.some(key => !form[key]);
+    const missing = required.some((key) => !form[key]);
 
     if (missing) {
       Alert.alert('Missing Information', 'Please fill all required fields.');
       return;
     }
 
-    Alert.alert('Success', 'Product uploaded successfully.');
+    if (!currentUser?.phone) {
+      Alert.alert('Error', 'User is not logged in.');
+      return;
+    }
+
+    try {
+      const result = await addProduct({
+        farmerName: currentUser.name || 'Unknown',
+        farmerPhone: currentUser.phone,
+        ...form,
+      });
+
+      if (result.success) {
+        Alert.alert('Success', 'Product uploaded successfully.');
+        setForm({
+          productName: '',
+          category: '',
+          quantity: '',
+          price: '',
+          location: '',
+          description: '',
+        });
+      } else {
+        Alert.alert('Error', result.message || 'Upload failed');
+      }
+    } catch (err) {
+      console.error('Upload product error', err);
+      Alert.alert('Error', 'Could not upload product.');
+    }
   };
 
   return (

@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ScrollView,
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -13,9 +14,43 @@ import { tractorListings } from '../../data/mockData';
 import colors from '../../theme/colors';
 import spacing from '../../theme/spacing';
 import typography from '../../theme/typography';
+import { getAvailableTractors } from '../../services/apiService';
 
 export default function AvailableTractorsScreen() {
   const navigation = useNavigation();
+  const [tractors, setTractors] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchTractors();
+  }, []);
+
+  const fetchTractors = async () => {
+    try {
+      const result = await getAvailableTractors();
+      if (result.success) {
+        setTractors(result.data);
+      } else {
+        console.log('Failed to fetch tractors:', result.message);
+        setTractors(tractorListings); // fallback to mock
+      }
+    } catch (error) {
+      console.error('Error fetching tractors:', error);
+      setTractors(tractorListings); // fallback to mock
+    }
+    setLoading(false);
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loading}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.loadingText}>Loading tractors...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -24,16 +59,13 @@ export default function AvailableTractorsScreen() {
           Available Tractors
         </Text>
 
-        {tractorListings.map(item => (
-          <View key={item.id} style={styles.card}>
-            <Text style={styles.name}>{item.tractorModel}</Text>
+        {tractors.map(item => (
+          <View key={item.tractorId || item.id || `${item.model}-${item.ownerPhone}`} style={styles.card}>
+            <Text style={styles.name}>{item.model || item.tractorModel}</Text>
 
-            <Text style={styles.text}>Owner: {item.ownerName}</Text>
-            <Text style={styles.text}>Number: {item.tractorNumber}</Text>
+            <Text style={styles.text}>Owner: {item.ownerName || 'Unknown'}</Text>
+            <Text style={styles.text}>Number: {item.number || item.tractorNumber}</Text>
             <Text style={styles.text}>Location: {item.location}</Text>
-            <Text style={styles.text}>
-              Hourly Rate: ₹{item.hourlyRate}
-            </Text>
             <Text style={styles.text}>
               Daily Rate: ₹{item.dailyRate}
             </Text>
@@ -42,27 +74,27 @@ export default function AvailableTractorsScreen() {
               style={[
                 styles.text,
                 {
-                  color: item.available
-                    ? colors.success || 'green'
-                    : colors.error || 'red',
+                  color: item.status === 'Available' ? 'green' : 'red',
                   fontWeight: '600',
                 },
               ]}
             >
-              Status: {item.available ? 'Available' : 'Not Available'}
+              Status: {item.status || 'Available'}
             </Text>
 
             {/* 🔥 BOOK BUTTON */}
-            {item.available && (
+            {(item.status === 'Available' || !item.status) && (
               <TouchableOpacity
                 style={styles.bookButton}
                 onPress={() =>
                   navigation.navigate('BookTractor', {
                     tractor: {
-                      model: item.tractorModel,
-                      number: item.tractorNumber,
+                      model: item.model || item.tractorModel,
+                      number: item.number || item.tractorNumber,
                       location: item.location,
                       dailyRate: item.dailyRate,
+                      ownerName: item.ownerName || 'Unknown',
+                      ownerPhone: item.ownerPhone || item.phone,
                     },
                   })
                 }

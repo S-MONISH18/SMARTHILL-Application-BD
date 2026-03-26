@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   SafeAreaView,
   View,
@@ -33,11 +33,12 @@ export default function FarmerOrderRequestsScreen() {
   //////////////////////////////////////////////////////
   // FETCH ORDERS
   //////////////////////////////////////////////////////
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     try {
       setLoading(true);
 
-      const result = await getFarmerOrders(currentUser.name);
+      const farmerKey = currentUser?.phone || currentUser?.name;
+      const result = await getFarmerOrders(farmerKey);
 
       if (result.success) {
         setOrders(result.data || []);
@@ -47,7 +48,7 @@ export default function FarmerOrderRequestsScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentUser]);
 
   //////////////////////////////////////////////////////
   // 🔄 AUTO REFRESH (BEST METHOD)
@@ -61,8 +62,17 @@ export default function FarmerOrderRequestsScreen() {
       }, 5000); // every 5 sec
 
       return () => clearInterval(interval);
-    }, [])
+    }, [fetchOrders])
   );
+
+  //////////////////////////////////////////////////////
+  // STATUS COLOR
+  //////////////////////////////////////////////////////
+  const getStatusColor = (status) => {
+    if (status === 'Approved') return 'green';
+    if (status === 'Rejected') return 'red';
+    return 'orange';
+  };
 
   //////////////////////////////////////////////////////
   // UPDATE STATUS
@@ -87,8 +97,12 @@ export default function FarmerOrderRequestsScreen() {
         {item.productName}
       </Text>
 
+      {item.buyerName ? (
+        <Text style={styles.text}>👤 Buyer Name: {item.buyerName}</Text>
+      ) : null}
+
       <Text style={styles.text}>
-        👤 Buyer: {item.buyerPhone}
+        👤 Buyer Phone: {item.buyerPhone}
       </Text>
 
       <Text style={styles.text}>
@@ -99,19 +113,7 @@ export default function FarmerOrderRequestsScreen() {
         💰 Price: ₹{item.price}
       </Text>
 
-      <Text
-        style={[
-          styles.status,
-          {
-            color:
-              item.status === 'Approved'
-                ? 'green'
-                : item.status === 'Rejected'
-                ? 'red'
-                : 'orange',
-          },
-        ]}
-      >
+      <Text style={[styles.status, { color: getStatusColor(item.status) }]}> 
         {item.status || 'Pending'}
       </Text>
 

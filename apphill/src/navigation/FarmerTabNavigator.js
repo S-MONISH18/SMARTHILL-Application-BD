@@ -16,7 +16,10 @@ import FarmerProfileScreen from '../screens/farmer/FarmerProfileScreen';
 // 🔥 Booking screen
 import BookTractorScreen from '../screens/tractorOwner/BookTractorScreen';
 
-// 🔔 Notifications
+// � Register Tractor (farmers can now register too!)
+import RegisterTractorScreen from '../screens/tractorOwner/RegisterTractorScreen';
+
+// �🔔 Notifications
 import NotificationsScreen from '../screens/common/NotificationsScreen';
 
 // 🛒 NEW: Farmer Orders
@@ -47,6 +50,11 @@ function TractorStack() {
         name="BookTractor"
         component={BookTractorScreen}
         options={{ title: 'Book Tractor' }}
+      />
+      <Stack.Screen
+        name="RegisterTractor"
+        component={RegisterTractorScreen}
+        options={{ title: 'Register Your Tractor' }}
       />
     </Stack.Navigator>
   );

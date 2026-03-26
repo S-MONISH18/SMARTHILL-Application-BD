@@ -22,10 +22,11 @@ export default function RegisterTractorScreen() {
     model: '',
     number: '',
     dailyRate: '',
+    hourlyRate: '',
   });
 
   const handleSubmit = async () => {
-    const requiredFields = ['location', 'model', 'number', 'dailyRate'];
+    const requiredFields = ['location', 'model', 'number', 'dailyRate', 'hourlyRate'];
     const missingFields = requiredFields.filter(field => !formData[field]);
 
     if (missingFields.length > 0) {
@@ -43,10 +44,12 @@ export default function RegisterTractorScreen() {
     try {
       const tractorData = {
         ownerPhone: currentUser.phone,
+        ownerName: currentUser.name || currentUser.userId || 'Unknown',
         model: formData.model,
         number: formData.number,
         location: formData.location,
         dailyRate: formData.dailyRate,
+        hourlyRate: formData.hourlyRate,
         status: available ? 'Available' : 'Unavailable',
       };
 
@@ -119,6 +122,14 @@ export default function RegisterTractorScreen() {
           <Text style={[typography.h3, styles.sectionTitle]}>Rental Pricing</Text>
           <AppCard>
             <InputField
+              label="Hourly Rate (₹) *"
+              placeholder="500"
+              value={formData.hourlyRate}
+              onChangeText={value => updateFormData('hourlyRate', value)}
+              keyboardType="numeric"
+              icon={<Text>⏱️</Text>}
+            />
+            <InputField
               label="Daily Rate (₹) *"
               placeholder="3500"
               value={formData.dailyRate}
@@ -127,14 +138,22 @@ export default function RegisterTractorScreen() {
               icon={<Text>📅</Text>}
             />
 
-            {formData.dailyRate ? (
+            {formData.dailyRate || formData.hourlyRate ? (
               <View style={styles.pricePreview}>
                 <Text style={[typography.bodySmall, styles.previewLabel]}>Price Preview</Text>
                 <View style={styles.previewRow}>
-                  <View style={styles.previewItem}>
-                    <Text style={[typography.caption, styles.previewType]}>Daily</Text>
-                    <Text style={[typography.h4, styles.previewPrice]}>₹{formData.dailyRate}</Text>
-                  </View>
+                  {formData.hourlyRate && (
+                    <View style={styles.previewItem}>
+                      <Text style={[typography.caption, styles.previewType]}>Hourly</Text>
+                      <Text style={[typography.h4, styles.previewPrice]}>₹{formData.hourlyRate}</Text>
+                    </View>
+                  )}
+                  {formData.dailyRate && (
+                    <View style={styles.previewItem}>
+                      <Text style={[typography.caption, styles.previewType]}>Daily</Text>
+                      <Text style={[typography.h4, styles.previewPrice]}>₹{formData.dailyRate}</Text>
+                    </View>
+                  )}
                 </View>
               </View>
             ) : null}

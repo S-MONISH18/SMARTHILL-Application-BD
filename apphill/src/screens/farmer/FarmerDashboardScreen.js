@@ -8,6 +8,7 @@ import {
   Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import NetInfo from '@react-native-community/netinfo';
 import colors from '../../theme/colors';
 import spacing from '../../theme/spacing';
@@ -20,6 +21,7 @@ import InputField from '../../components/InputField';
 import PrimaryButton from '../../components/PrimaryButton';
 
 export default function FarmerDashboardScreen() {
+  const navigation = useNavigation();
   const [areaSize, setAreaSize] = React.useState('2.5');
   const [isOfflineMode, setIsOfflineMode] = useState(false);
   const [currentIP, setCurrentIP] = useState(null);
@@ -34,20 +36,20 @@ export default function FarmerDashboardScreen() {
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener((state) => {
       console.log('📡 Network State (Farmer):', state);
-      if (state.isConnected && state.type === 'wifi' && state.details) {
+      if (state.isConnected && (state.type === 'wifi' || state.type === 'cellular') && state.details) {
         const ip = state.details.ipAddress || null;
-        console.log('🌐 Detected WIFI IP (Farmer):', ip);
+        console.log('🌐 Detected network IP (Farmer):', ip);
         setCurrentIP(ip);
         setConnectedIP(ip);
       } else {
         setCurrentIP(null);
-        console.log('❌ No WIFI connection (Farmer), type:', state.type);
+        console.log('❌ No network connection (Farmer), type:', state.type);
       }
     });
 
     NetInfo.fetch().then((state) => {
       console.log('Initial Network State (Farmer):', state);
-      if (state.isConnected && state.type === 'wifi' && state.details) {
+      if (state.isConnected && (state.type === 'wifi' || state.type === 'cellular') && state.details) {
         const ip = state.details.ipAddress || null;
         setCurrentIP(ip);
         setConnectedIP(ip);
@@ -106,6 +108,21 @@ export default function FarmerDashboardScreen() {
           valveCount={valveCount}
           areaSize={areaSize}
         />
+
+        {/* 🔥 REGISTER TRACTOR CARD */}
+        <TouchableOpacity
+          style={styles.registerTractorCard}
+          onPress={() => navigation.navigate('Tractors', { screen: 'RegisterTractor' })}
+        >
+          <Text style={styles.registerTractorIcon}>🚜</Text>
+          <View style={styles.registerTractorContent}>
+            <Text style={[typography.h4, styles.registerTractorTitle]}>Register Tractor</Text>
+            <Text style={[typography.bodySmall, styles.registerTractorText]}>
+              List your tractor and earn extra income
+            </Text>
+          </View>
+          <Text style={styles.registerTractorArrow}>→</Text>
+        </TouchableOpacity>
 
         <AppCard style={styles.areaCard}>
           <InputField
@@ -414,6 +431,35 @@ const styles = StyleSheet.create({
   },
   inputIcon: {
     fontSize: 18,
+  },
+  registerTractorCard: {
+    backgroundColor: colors.primary + '15',
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: colors.primary,
+    padding: spacing.lg,
+    marginBottom: spacing.xl,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  registerTractorIcon: {
+    fontSize: 32,
+    marginRight: spacing.md,
+  },
+  registerTractorContent: {
+    flex: 1,
+  },
+  registerTractorTitle: {
+    color: colors.primary,
+    marginBottom: spacing.xs,
+  },
+  registerTractorText: {
+    color: colors.textSecondary,
+  },
+  registerTractorArrow: {
+    fontSize: 20,
+    color: colors.primary,
   },
   section: {
     marginBottom: spacing.xxl,
