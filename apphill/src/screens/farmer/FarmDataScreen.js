@@ -10,9 +10,9 @@ import { fetchLatestSensorReading } from '../../services/thingSpeakService';
 
 export default function FarmDataScreen() {
   const [farmData, setFarmData] = useState({
-    nodeCount: 24,
-    landArea: 15.5,
-    activeNodes: 22,
+    nodeCount: 2,
+    landArea: 2.5,
+    activeNodes: 2,
   });
   const [sensorData, setSensorData] = useState({
     node1: { ph: 0, temperature: 0, waterLevel: 0, ldr: 0 },
@@ -171,18 +171,18 @@ export default function FarmDataScreen() {
 
             <View style={styles.sensorGrid}>
               <View style={styles.sensorItem}>
-                <Text style={styles.sensorIcon}>📊</Text>
-                <Text style={typography.label}>pH Level</Text>
+                <Text style={styles.sensorIcon}>🌡️</Text>
+                <Text style={typography.label}>Temperature</Text>
                 <Text style={[typography.h3, styles.sensorValue]}>
-                  {sensorData.node1.ph.toFixed(2)}
+                  {sensorData.node1.ph.toFixed(2)}°C
                 </Text>
               </View>
 
               <View style={styles.sensorItem}>
-                <Text style={styles.sensorIcon}>🌡️</Text>
-                <Text style={typography.label}>Temperature</Text>
+                <Text style={styles.sensorIcon}>📊</Text>
+                <Text style={typography.label}>pH Level</Text>
                 <Text style={[typography.h3, styles.sensorValue]}>
-                  {sensorData.node1.temperature.toFixed(1)}°C
+                  {sensorData.node1.temperature.toFixed(1)}
                 </Text>
               </View>
 
@@ -216,18 +216,18 @@ export default function FarmDataScreen() {
 
             <View style={styles.sensorGrid}>
               <View style={styles.sensorItem}>
-                <Text style={styles.sensorIcon}>📊</Text>
-                <Text style={typography.label}>pH Level</Text>
+                <Text style={styles.sensorIcon}>🌡️</Text>
+                <Text style={typography.label}>Temperature</Text>
                 <Text style={[typography.h3, styles.sensorValue]}>
-                  {sensorData.node2.ph.toFixed(2)}
+                  {sensorData.node2.ph.toFixed(2)}°C
                 </Text>
               </View>
 
               <View style={styles.sensorItem}>
-                <Text style={styles.sensorIcon}>🌡️</Text>
-                <Text style={typography.label}>Temperature</Text>
+                <Text style={styles.sensorIcon}>📊</Text>
+                <Text style={typography.label}>pH Level</Text>
                 <Text style={[typography.h3, styles.sensorValue]}>
-                  {sensorData.node2.temperature.toFixed(1)}°C
+                  {sensorData.node2.temperature.toFixed(1)}
                 </Text>
               </View>
 
