@@ -14,6 +14,12 @@ import RentalRequestsScreen from '../screens/tractorOwner/RentalRequestsScreen';
 import TractorOwnerProfileScreen from '../screens/tractorOwner/TractorOwnerProfileScreen';
 import BookTractorScreen from '../screens/tractorOwner/BookTractorScreen';
 
+// 💬 ChatBox Assistant
+import ChatBoxScreen from '../screens/common/ChatBoxScreen';
+
+// ❓ FAQ & Support
+import FAQScreen from '../screens/common/FAQScreen';
+
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
@@ -91,6 +97,24 @@ export default function TractorOwnerTabNavigator() {
         options={{
           tabBarLabel: 'Requests',
           tabBarIcon: ({ color }) => <TabIcon symbol="📩" color={color} />,
+        }}
+      />
+
+      <Tab.Screen
+        name="FAQ"
+        component={FAQScreen}
+        options={{
+          tabBarLabel: 'Help',
+          tabBarIcon: ({ color }) => <TabIcon symbol="❓" color={color} />,
+        }}
+      />
+
+      <Tab.Screen
+        name="ChatBox"
+        component={ChatBoxScreen}
+        options={{
+          tabBarLabel: 'AI Chat',
+          tabBarIcon: ({ color }) => <TabIcon symbol="💬" color={color} />,
         }}
       />
 

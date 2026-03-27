@@ -10,6 +10,7 @@ buildscript {
     repositories {
         google()
         mavenCentral()
+        maven { url "https://repo.maven.apache.org/maven2" }
     }
     dependencies {
         classpath("com.android.tools.build:gradle")
@@ -19,3 +20,11 @@ buildscript {
 }
 
 apply plugin: "com.facebook.react.rootproject"
+
+configurations.all {
+    resolutionStrategy.eachDependency { details ->
+        if (details.requested.group == 'com.android.tools.lint') {
+            details.useTarget group: 'com.android.tools.lint', name: 'lint-gradle', version: '30.0.0'
+        }
+    }
+}

@@ -15,6 +15,12 @@ import CustomerProfileScreen from '../screens/customer/CustomerProfileScreen';
 import NotificationsScreen from '../screens/common/NotificationsScreen';
 import MyCustomerBookingsScreen from '../screens/customer/MyCustomerBookingsScreen';
 
+// 💬 ChatBox Assistant
+import ChatBoxScreen from '../screens/common/ChatBoxScreen';
+
+// ❓ FAQ & Support
+import FAQScreen from '../screens/common/FAQScreen';
+
 const Tab = createBottomTabNavigator();
 
 //////////////////////////////////////////////////////
@@ -101,7 +107,31 @@ export default function CustomerTabNavigator() {
         }}
       />
 
-      {/* 👤 PROFILE */}
+      {/* ❓ FAQ */}
+      <Tab.Screen
+        name="FAQ"
+        component={FAQScreen}
+        options={{
+          tabBarLabel: 'Help',
+          tabBarIcon: ({ color }) => (
+            <TabIcon symbol="❓" color={color} />
+          ),
+        }}
+      />
+
+      {/* � ChatBox Assistant */}
+      <Tab.Screen
+        name="ChatBox"
+        component={ChatBoxScreen}
+        options={{
+          tabBarLabel: 'AI Chat',
+          tabBarIcon: ({ color }) => (
+            <TabIcon symbol="💬" color={color} />
+          ),
+        }}
+      />
+
+      {/* �👤 PROFILE */}
       <Tab.Screen
         name="CustomerProfile"
         component={CustomerProfileScreen}

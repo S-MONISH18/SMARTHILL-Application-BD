@@ -7,7 +7,7 @@
 const API_HOSTS = {
   emulator: 'http://10.0.2.2:3000',
   local: 'http://localhost:3000',
-  lan: 'http://192.168.1.100:3000', // CHANGE THIS to your PC IP if not using adb reverse
+  lan: 'http://10.11.73.65:3000', // CHANGE THIS to your PC IP if not using adb reverse
 };
 
 // Set this to the correct host for your current dev run.

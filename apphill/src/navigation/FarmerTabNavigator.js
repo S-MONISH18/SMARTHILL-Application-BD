@@ -25,6 +25,12 @@ import NotificationsScreen from '../screens/common/NotificationsScreen';
 // 🛒 NEW: Farmer Orders
 import FarmerOrderRequestsScreen from '../screens/farmer/FarmerOrderRequestsScreen';
 
+// 💬 ChatBox Assistant
+import ChatBoxScreen from '../screens/common/ChatBoxScreen';
+
+// ❓ FAQ & Support
+import FAQScreen from '../screens/common/FAQScreen';
+
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
@@ -145,6 +151,30 @@ export default function FarmerTabNavigator() {
           tabBarLabel: 'Sell',
           tabBarIcon: ({ color }) => (
             <TabIcon symbol="🛒" color={color} />
+          ),
+        }}
+      />
+
+      {/* ❓ FAQ & Support */}
+      <Tab.Screen
+        name="FAQ"
+        component={FAQScreen}
+        options={{
+          tabBarLabel: 'Help',
+          tabBarIcon: ({ color }) => (
+            <TabIcon symbol="❓" color={color} />
+          ),
+        }}
+      />
+
+      {/* 💬 ChatBox Assistant */}
+      <Tab.Screen
+        name="ChatBox"
+        component={ChatBoxScreen}
+        options={{
+          tabBarLabel: 'AI Chat',
+          tabBarIcon: ({ color }) => (
+            <TabIcon symbol="💬" color={color} />
           ),
         }}
       />
