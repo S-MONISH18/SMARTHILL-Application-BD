@@ -104,8 +104,7 @@ export default function TractorOwnerTabNavigator() {
         name="FAQ"
         component={FAQScreen}
         options={{
-          tabBarLabel: 'Help',
-          tabBarIcon: ({ color }) => <TabIcon symbol="❓" color={color} />,
+          tabBarItemStyle: { display: 'none' },
         }}
       />
 
@@ -113,8 +112,7 @@ export default function TractorOwnerTabNavigator() {
         name="ChatBox"
         component={ChatBoxScreen}
         options={{
-          tabBarLabel: 'AI Chat',
-          tabBarIcon: ({ color }) => <TabIcon symbol="💬" color={color} />,
+          tabBarItemStyle: { display: 'none' },
         }}
       />
 

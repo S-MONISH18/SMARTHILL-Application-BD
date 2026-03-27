@@ -5,7 +5,8 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Switch,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -19,6 +20,12 @@ import Badge from '../../components/Badge';
 import FarmSummary from '../../components/FarmSummary';
 import InputField from '../../components/InputField';
 import PrimaryButton from '../../components/PrimaryButton';
+import MenuButton from '../../components/MenuButton';
+import {
+  fetchThingSpeakStatus,
+  setDeviceStatus,
+  LOCK_TIME_SECONDS,
+} from '../../services/thingSpeakControlService';
 
 export default function FarmerDashboardScreen() {
   const navigation = useNavigation();
@@ -27,10 +34,110 @@ export default function FarmerDashboardScreen() {
   const [currentIP, setCurrentIP] = useState(null);
   const [connectedIP, setConnectedIP] = useState(null);
 
+  // ThingSpeak device states
+  const [motorStatus, setMotorStatus] = useState(false);
+  const [fertilizerStatus, setFertilizerStatus] = useState(false);
+  const [valve1Status, setValve1Status] = useState(false);
+  const [valve2Status, setValve2Status] = useState(false);
+  const [loadingDevices, setLoadingDevices] = useState({});
+  const [isLocked, setIsLocked] = useState(false);
+  const [lockTimer, setLockTimer] = useState(0);
+
   const LOCAL_IP = '192.168.1.100';
-  const nodeCount = 2;
-  const motorCount = 3;
-  const valveCount = 4;
+  const nodeCount = 0;
+  const motorCount = 2;
+  const valveCount = 2;
+
+  // Fetch ThingSpeak status on mount
+  useEffect(() => {
+    loadThingSpeakStatus();
+  }, []);
+
+  const loadThingSpeakStatus = async () => {
+    try {
+      setLoadingDevices({ motor: true, fertilizer: true, valve1: true, valve2: true });
+      const status = await fetchThingSpeakStatus();
+      setMotorStatus(status.motor);
+      setFertilizerStatus(status.fertilizer);
+      setValve1Status(status.valve1);
+      setValve2Status(status.valve2);
+      console.log('✅ ThingSpeak status loaded:', status);
+    } catch (err) {
+      console.error('❌ Failed to load ThingSpeak status:', err);
+      Alert.alert('Error', 'Failed to load device status from ThingSpeak');
+    } finally {
+      setLoadingDevices({});
+    }
+  };
+
+  // Lock timer effect
+  useEffect(() => {
+    let interval;
+    if (lockTimer > 0) {
+      interval = setInterval(() => {
+        setLockTimer((prev) => prev - 1);
+      }, 1000);
+    } else if (lockTimer === 0 && isLocked) {
+      setIsLocked(false);
+    }
+    return () => clearInterval(interval);
+  }, [lockTimer, isLocked]);
+
+  // Handle device toggle
+  const handleDeviceToggle = async (device) => {
+    if (isLocked) {
+      Alert.alert('Locked', `Please wait ${lockTimer} seconds before next action`);
+      return;
+    }
+
+    const statusMap = {
+      motor: motorStatus,
+      fertilizer: fertilizerStatus,
+      valve1: valve1Status,
+      valve2: valve2Status,
+    };
+
+    const currentStatus = {
+      motor: motorStatus,
+      fertilizer: fertilizerStatus,
+      valve1: valve1Status,
+      valve2: valve2Status,
+    };
+
+    try {
+      setLoadingDevices((prev) => ({ ...prev, [device]: true }));
+      
+      const newStatus = !statusMap[device];
+      await setDeviceStatus(device, newStatus, currentStatus);
+
+      // Update local state
+      switch (device) {
+        case 'motor':
+          setMotorStatus(newStatus);
+          break;
+        case 'fertilizer':
+          setFertilizerStatus(newStatus);
+          break;
+        case 'valve1':
+          setValve1Status(newStatus);
+          break;
+        case 'valve2':
+          setValve2Status(newStatus);
+          break;
+      }
+
+      // Set lock
+      setIsLocked(true);
+      setLockTimer(LOCK_TIME_SECONDS);
+      
+      console.log(`✅ ${device} toggled to ${newStatus}`);
+    } catch (err) {
+      console.error(`❌ Failed to toggle ${device}:`, err);
+      Alert.alert('Error', `Failed to control ${device}: ${err.message}`);
+    } finally {
+      setLoadingDevices((prev) => ({ ...prev, [device]: false }));
+    }
+  };
 
   // Network detection
   useEffect(() => {
@@ -59,20 +166,6 @@ export default function FarmerDashboardScreen() {
     return unsubscribe;
   }, []);
 
-  const getModeLabel = () => {
-    if (isOfflineMode) return '🔴 OFFLINE';
-    if (currentIP === LOCAL_IP) return '🟢 LOCAL IP';
-    if (currentIP) return `🟡 REMOTE (${currentIP})`;
-    return '⚫ NO NETWORK';
-  };
-
-  const getModeColor = () => {
-    if (isOfflineMode) return '#DC2626';
-    if (currentIP === LOCAL_IP) return '#16A34A';
-    if (currentIP) return '#F59E0B';
-    return '#6B7280';
-  };
-
   return (
     <SafeAreaView style={styles.safeContainer} edges={['top', 'bottom']}>
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -83,23 +176,10 @@ export default function FarmerDashboardScreen() {
               Smart farm monitoring
             </Text>
           </View>
-          <View style={[styles.headerBox, { borderColor: getModeColor() }]}> 
-            <View style={styles.modeRow}>
-              <View style={[styles.statusDot, { backgroundColor: getModeColor() }]} />
-              <View style={styles.modeSection}>
-                <Text style={styles.modeLabel}>{getModeLabel()}</Text>
-                <Text style={styles.modeDetails}>{isOfflineMode ? 'Cached data' : 'Live data'}</Text>
-              </View>
-            </View>
-            <View style={styles.toggleSection}>
-              <Text style={styles.toggleText}>Offline mode</Text>
-              <Switch
-                value={isOfflineMode}
-                onValueChange={setIsOfflineMode}
-                trackColor={{ false: '#E5E7EB', true: colors.primaryLight }}
-              />
-            </View>
-          </View>
+          <MenuButton
+            isOfflineMode={isOfflineMode}
+            onOfflineModeChange={setIsOfflineMode}
+          />
         </View>
 
         <FarmSummary
@@ -142,159 +222,183 @@ export default function FarmerDashboardScreen() {
           </Text>
         </View>
 
-        <View style={styles.section}>
-          <Text style={[typography.h4, styles.sectionTitle]}>Live Sensor Data</Text>
-
-          <AppCard style={styles.sensorCard}>
-            <View style={styles.nodeHeader}>
-              <Text style={[typography.label, styles.nodeTitle]}>Node 1</Text>
-              <Badge text="Online" variant="success" size="small" />
-            </View>
-
-            <View style={styles.sensorGrid}>
-              <StatTile
-                label="Temperature"
-                value="24°C"
-                icon={<Text style={styles.sensorIcon}>🌡️</Text>}
-              />
-              <StatTile
-                label="Soil pH"
-                value="6.8"
-                icon={<Text style={styles.sensorIcon}>🧪</Text>}
-              />
-            </View>
-
-            <View style={styles.sensorGrid}>
-              <StatTile
-                label="Water Level"
-                value="85%"
-                icon={<Text style={styles.sensorIcon}>💧</Text>}
-              />
-              <StatTile
-                label="Light"
-                value="Medium"
-                icon={<Text style={styles.sensorIcon}>☀️</Text>}
-              />
-            </View>
-          </AppCard>
-
-          <AppCard style={styles.sensorCard}>
-            <View style={styles.nodeHeader}>
-              <Text style={[typography.label, styles.nodeTitle]}>Node 2</Text>
-              <Badge text="Online" variant="success" size="small" />
-            </View>
-
-            <View style={styles.sensorGrid}>
-              <StatTile
-                label="Temperature"
-                value="26°C"
-                icon={<Text style={styles.sensorIcon}>🌡️</Text>}
-              />
-              <StatTile
-                label="Soil pH"
-                value="7.2"
-                icon={<Text style={styles.sensorIcon}>🧪</Text>}
-              />
-            </View>
-
-            <View style={styles.sensorGrid}>
-              <StatTile
-                label="Water Level"
-                value="92%"
-                icon={<Text style={styles.sensorIcon}>💧</Text>}
-              />
-              <StatTile
-                label="Light"
-                value="High"
-                icon={<Text style={styles.sensorIcon}>☀️</Text>}
-              />
-            </View>
-          </AppCard>
-        </View>
+        {isLocked && (
+          <View style={styles.lockWarning}>
+            <Text style={styles.lockWarningText}>⏱️ Please wait {lockTimer}s before next action...</Text>
+          </View>
+        )}
 
         <View style={styles.section}>
           <Text style={[typography.h4, styles.sectionTitle]}>Motor Controls</Text>
 
+          {/* Motor */}
           <AppCard style={styles.controlCard}>
             <View style={styles.controlHeader}>
-              <View>
+              <View style={styles.controlHeaderLeft}>
                 <Text style={[typography.label, styles.controlTitle]}>
-                  Irrigation Pump 1
+                  🔌 Motor Pump
                 </Text>
                 <Text style={[typography.caption, styles.controlStatus]}>
-                  Currently active
+                  {motorStatus ? 'Currently running' : 'Standby mode'}
                 </Text>
               </View>
-              <Badge text="ON" variant="success" />
+              <Badge text={motorStatus ? 'ON' : 'OFF'} variant={motorStatus ? 'success' : 'default'} />
             </View>
             <View style={styles.controlButtons}>
-              <TouchableOpacity style={styles.controlButtonOff}>
-                <Text style={[typography.buttonSmall, styles.controlButtonTextOff]}>
-                  Turn OFF
-                </Text>
+              <TouchableOpacity
+                style={[styles.controlButtonOn, motorStatus && styles.controlButtonActive]}
+                onPress={() => handleDeviceToggle('motor')}
+                disabled={loadingDevices.motor || isLocked}
+              >
+                {loadingDevices.motor ? (
+                  <ActivityIndicator color={colors.surface} size="small" />
+                ) : (
+                  <Text style={[typography.buttonSmall, styles.controlButtonTextOn]}>
+                    Turn ON
+                  </Text>
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.controlButtonOff, !motorStatus && styles.controlButtonActive]}
+                onPress={() => handleDeviceToggle('motor')}
+                disabled={loadingDevices.motor || isLocked}
+              >
+                {loadingDevices.motor ? (
+                  <ActivityIndicator color={colors.surface} size="small" />
+                ) : (
+                  <Text style={[typography.buttonSmall, styles.controlButtonTextOff]}>
+                    Turn OFF
+                  </Text>
+                )}
               </TouchableOpacity>
             </View>
           </AppCard>
 
+          {/* Fertilizer */}
           <AppCard style={styles.controlCard}>
             <View style={styles.controlHeader}>
-              <View>
+              <View style={styles.controlHeaderLeft}>
                 <Text style={[typography.label, styles.controlTitle]}>
-                  Irrigation Pump 2
+                  💧 Fertilizer Dispenser
                 </Text>
                 <Text style={[typography.caption, styles.controlStatus]}>
-                  Ready to activate
+                  {fertilizerStatus ? 'Currently running' : 'Ready to activate'}
                 </Text>
               </View>
-              <Badge text="OFF" variant="default" />
+              <Badge text={fertilizerStatus ? 'ON' : 'OFF'} variant={fertilizerStatus ? 'success' : 'default'} />
             </View>
             <View style={styles.controlButtons}>
-              <TouchableOpacity style={styles.controlButtonOn}>
-                <Text style={[typography.buttonSmall, styles.controlButtonTextOn]}>
-                  Turn ON
-                </Text>
+              <TouchableOpacity
+                style={[styles.controlButtonOn, fertilizerStatus && styles.controlButtonActive]}
+                onPress={() => handleDeviceToggle('fertilizer')}
+                disabled={loadingDevices.fertilizer || isLocked}
+              >
+                {loadingDevices.fertilizer ? (
+                  <ActivityIndicator color={colors.surface} size="small" />
+                ) : (
+                  <Text style={[typography.buttonSmall, styles.controlButtonTextOn]}>
+                    Turn ON
+                  </Text>
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.controlButtonOff, !fertilizerStatus && styles.controlButtonActive]}
+                onPress={() => handleDeviceToggle('fertilizer')}
+                disabled={loadingDevices.fertilizer || isLocked}
+              >
+                {loadingDevices.fertilizer ? (
+                  <ActivityIndicator color={colors.surface} size="small" />
+                ) : (
+                  <Text style={[typography.buttonSmall, styles.controlButtonTextOff]}>
+                    Turn OFF
+                  </Text>
+                )}
               </TouchableOpacity>
             </View>
           </AppCard>
 
+          {/* Valve 1 */}
           <AppCard style={styles.controlCard}>
             <View style={styles.controlHeader}>
-              <View>
+              <View style={styles.controlHeaderLeft}>
                 <Text style={[typography.label, styles.controlTitle]}>
-                  Irrigation Pump 3
+                  🚰 Valve 1
                 </Text>
                 <Text style={[typography.caption, styles.controlStatus]}>
-                  Standby mode
+                  {valve1Status ? 'Currently open' : 'Closed'}
                 </Text>
               </View>
-              <Badge text="OFF" variant="default" />
+              <Badge text={valve1Status ? 'ON' : 'OFF'} variant={valve1Status ? 'success' : 'default'} />
             </View>
             <View style={styles.controlButtons}>
-              <TouchableOpacity style={styles.controlButtonOn}>
-                <Text style={[typography.buttonSmall, styles.controlButtonTextOn]}>
-                  Turn ON
-                </Text>
+              <TouchableOpacity
+                style={[styles.controlButtonOn, valve1Status && styles.controlButtonActive]}
+                onPress={() => handleDeviceToggle('valve1')}
+                disabled={loadingDevices.valve1 || isLocked}
+              >
+                {loadingDevices.valve1 ? (
+                  <ActivityIndicator color={colors.surface} size="small" />
+                ) : (
+                  <Text style={[typography.buttonSmall, styles.controlButtonTextOn]}>
+                    Turn ON
+                  </Text>
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.controlButtonOff, !valve1Status && styles.controlButtonActive]}
+                onPress={() => handleDeviceToggle('valve1')}
+                disabled={loadingDevices.valve1 || isLocked}
+              >
+                {loadingDevices.valve1 ? (
+                  <ActivityIndicator color={colors.surface} size="small" />
+                ) : (
+                  <Text style={[typography.buttonSmall, styles.controlButtonTextOff]}>
+                    Turn OFF
+                  </Text>
+                )}
               </TouchableOpacity>
             </View>
           </AppCard>
 
+          {/* Valve 2 */}
           <AppCard style={styles.controlCard}>
             <View style={styles.controlHeader}>
-              <View>
+              <View style={styles.controlHeaderLeft}>
                 <Text style={[typography.label, styles.controlTitle]}>
-                  Fertilizer Dispenser
+                  🚰 Valve 2
                 </Text>
                 <Text style={[typography.caption, styles.controlStatus]}>
-                  Ready to activate
+                  {valve2Status ? 'Currently open' : 'Closed'}
                 </Text>
               </View>
-              <Badge text="OFF" variant="default" />
+              <Badge text={valve2Status ? 'ON' : 'OFF'} variant={valve2Status ? 'success' : 'default'} />
             </View>
             <View style={styles.controlButtons}>
-              <TouchableOpacity style={styles.controlButtonOn}>
-                <Text style={[typography.buttonSmall, styles.controlButtonTextOn]}>
-                  Turn ON
-                </Text>
+              <TouchableOpacity
+                style={[styles.controlButtonOn, valve2Status && styles.controlButtonActive]}
+                onPress={() => handleDeviceToggle('valve2')}
+                disabled={loadingDevices.valve2 || isLocked}
+              >
+                {loadingDevices.valve2 ? (
+                  <ActivityIndicator color={colors.surface} size="small" />
+                ) : (
+                  <Text style={[typography.buttonSmall, styles.controlButtonTextOn]}>
+                    Turn ON
+                  </Text>
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.controlButtonOff, !valve2Status && styles.controlButtonActive]}
+                onPress={() => handleDeviceToggle('valve2')}
+                disabled={loadingDevices.valve2 || isLocked}
+              >
+                {loadingDevices.valve2 ? (
+                  <ActivityIndicator color={colors.surface} size="small" />
+                ) : (
+                  <Text style={[typography.buttonSmall, styles.controlButtonTextOff]}>
+                    Turn OFF
+                  </Text>
+                )}
               </TouchableOpacity>
             </View>
           </AppCard>
@@ -503,8 +607,12 @@ const styles = StyleSheet.create({
   controlStatus: {
     color: colors.textSecondary,
   },
+  controlHeaderLeft: {
+    flex: 1,
+  },
   controlButtons: {
     flexDirection: 'row',
+    gap: spacing.sm,
   },
   controlButtonOn: {
     flex: 1,
@@ -513,6 +621,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
+    opacity: 0.6,
+  },
+  controlButtonActive: {
+    opacity: 1,
   },
   controlButtonOff: {
     flex: 1,
@@ -521,12 +633,27 @@ const styles = StyleSheet.create({
     backgroundColor: colors.danger,
     justifyContent: 'center',
     alignItems: 'center',
+    opacity: 0.6,
   },
   controlButtonTextOn: {
     color: colors.surface,
   },
   controlButtonTextOff: {
     color: colors.surface,
+  },
+  lockWarning: {
+    backgroundColor: '#FEF08A',
+    borderRadius: 12,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+    alignItems: 'center',
+    borderLeftWidth: 4,
+    borderLeftColor: '#F59E0B',
+  },
+  lockWarningText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#92400E',
   },
   insightsCard: {
     padding: spacing.lg,

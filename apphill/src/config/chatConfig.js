@@ -10,7 +10,7 @@
 
 const chatConfig = {
   // ✅ OpenRouter API key (sk-or-v1-... format)
-  apiKey: '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', // Your OpenRouter key
+  apiKey: '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', // Your OpenRouter key
   
   // OpenRouter API URL for chat completions
   apiUrl: 'https://openrouter.ai/api/v1/chat/completions',

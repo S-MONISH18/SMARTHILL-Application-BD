@@ -131,19 +131,7 @@ export default function FarmerTabNavigator() {
         }}
       />
 
-      {/* 🔔 NOTIFICATIONS */}
-      <Tab.Screen
-        name="Notifications"
-        component={NotificationsScreen}
-        options={{
-          tabBarLabel: 'Alerts',
-          tabBarIcon: ({ color }) => (
-            <TabIcon symbol="🔔" color={color} />
-          ),
-        }}
-      />
-
-      {/* 🛒 SELL */}
+      {/* � SELL */}
       <Tab.Screen
         name="SellProducts"
         component={SellProductsScreen}
@@ -151,30 +139,6 @@ export default function FarmerTabNavigator() {
           tabBarLabel: 'Sell',
           tabBarIcon: ({ color }) => (
             <TabIcon symbol="🛒" color={color} />
-          ),
-        }}
-      />
-
-      {/* ❓ FAQ & Support */}
-      <Tab.Screen
-        name="FAQ"
-        component={FAQScreen}
-        options={{
-          tabBarLabel: 'Help',
-          tabBarIcon: ({ color }) => (
-            <TabIcon symbol="❓" color={color} />
-          ),
-        }}
-      />
-
-      {/* 💬 ChatBox Assistant */}
-      <Tab.Screen
-        name="ChatBox"
-        component={ChatBoxScreen}
-        options={{
-          tabBarLabel: 'AI Chat',
-          tabBarIcon: ({ color }) => (
-            <TabIcon symbol="💬" color={color} />
           ),
         }}
       />
@@ -188,6 +152,33 @@ export default function FarmerTabNavigator() {
           tabBarIcon: ({ color }) => (
             <TabIcon symbol="👤" color={color} />
           ),
+        }}
+      />
+
+      {/* 🔔 NOTIFICATIONS - Hidden from main tabs but still accessible */}
+      <Tab.Screen
+        name="Notifications"
+        component={NotificationsScreen}
+        options={{
+          tabBarItemStyle: { display: 'none' },
+        }}
+      />
+
+      {/* ❓ FAQ & Support - Hidden from main tabs */}
+      <Tab.Screen
+        name="FAQ"
+        component={FAQScreen}
+        options={{
+          tabBarItemStyle: { display: 'none' },
+        }}
+      />
+
+      {/* 💬 ChatBox Assistant - Hidden from main tabs */}
+      <Tab.Screen
+        name="ChatBox"
+        component={ChatBoxScreen}
+        options={{
+          tabBarItemStyle: { display: 'none' },
         }}
       />
     </Tab.Navigator>

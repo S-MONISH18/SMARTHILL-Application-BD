@@ -32,6 +32,7 @@ export default function LoginScreen({ navigation }) {
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('farmer');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async () => {
     if (!phone || !password) {
@@ -84,13 +85,24 @@ export default function LoginScreen({ navigation }) {
             />
 
             <Text style={styles.label}>Password</Text>
-            <TextInput
-              style={styles.input}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              placeholder="Password"
-            />
+            <View style={styles.passwordContainer}>
+              <TextInput
+                style={styles.passwordInput}
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+                placeholder="Password"
+                placeholderTextColor={colors.textSecondary}
+              />
+              <TouchableOpacity
+                style={styles.passwordToggle}
+                onPress={() => setShowPassword(!showPassword)}
+              >
+                <Text style={styles.passwordToggleText}>
+                  {showPassword ? '👁️' : '👁️‍🗨️'}
+                </Text>
+              </TouchableOpacity>
+            </View>
 
             <Text style={styles.label}>Role</Text>
             <View style={styles.roleList}>
@@ -132,63 +144,129 @@ export default function LoginScreen({ navigation }) {
 }
 
 //////////////////////////////////////////////////////
-// ✅ STYLES (IMPORTANT)
+// STYLES (IMPORTANT)
 //////////////////////////////////////////////////////
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { 
+    flex: 1, 
+    backgroundColor: '#f5f5f5',
+  },
 
   keyboardAvoiding: { flex: 1 },
 
-  content: { padding: 20 },
+  content: { 
+    padding: spacing.lg,
+    paddingTop: spacing.xl,
+  },
 
-  title: { marginBottom: 20 },
+  title: { 
+    marginBottom: spacing.lg,
+    color: colors.primary,
+    fontSize: 32,
+    fontWeight: '700',
+  },
 
-  label: { marginTop: 10 },
+  label: { 
+    marginTop: spacing.lg,
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+  },
 
   input: {
-    borderWidth: 1,
-    padding: 10,
-    borderRadius: 8,
-    marginTop: 5,
+    borderWidth: 1.5,
+    padding: spacing.md,
+    borderRadius: 12,
+    marginTop: spacing.sm,
+    backgroundColor: '#fff',
+    borderColor: '#e0e0e0',
+    fontSize: 16,
+    color: colors.text,
+  },
+
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderRadius: 12,
+    marginTop: spacing.sm,
+    paddingRight: spacing.sm,
+    backgroundColor: '#fff',
+    borderColor: '#e0e0e0',
+  },
+
+  passwordInput: {
+    flex: 1,
+    padding: spacing.md,
+    fontSize: 16,
+    color: colors.text,
+  },
+
+  passwordToggle: {
+    padding: spacing.sm,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  passwordToggleText: {
+    fontSize: 20,
   },
 
   roleList: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginTop: 10,
+    marginTop: spacing.md,
+    gap: spacing.sm,
   },
 
   roleButton: {
-    borderWidth: 1,
-    padding: 8,
-    marginRight: 10,
-    borderRadius: 20,
+    borderWidth: 2,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: 24,
+    backgroundColor: '#fff',
+    borderColor: colors.primary,
   },
 
   roleButtonActive: {
-    backgroundColor: 'green',
+    backgroundColor: colors.primary,
   },
 
-  roleText: {},
+  roleText: {
+    color: colors.primary,
+    fontWeight: '600',
+    fontSize: 14,
+  },
 
   roleTextActive: {
     color: '#fff',
   },
 
   button: {
-    backgroundColor: 'green',
-    padding: 12,
-    marginTop: 20,
-    borderRadius: 10,
+    backgroundColor: colors.primary,
+    padding: spacing.lg,
+    marginTop: spacing.xl,
+    marginBottom: spacing.lg,
+    borderRadius: 12,
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
 
   buttonText: {
     color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
   },
 
   link: {
-    marginTop: 15,
+    marginTop: spacing.lg,
     textAlign: 'center',
+    color: colors.primary,
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

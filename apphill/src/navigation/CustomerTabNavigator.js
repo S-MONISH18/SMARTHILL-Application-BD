@@ -11,14 +11,14 @@ import BuyProductsScreen from '../screens/customer/BuyProductsScreen';
 import RentTractorScreen from '../screens/customer/RentTractorScreen';
 import CustomerProfileScreen from '../screens/customer/CustomerProfileScreen';
 
-// 🔥 NEW SCREENS
+// NEW SCREENS
 import NotificationsScreen from '../screens/common/NotificationsScreen';
 import MyCustomerBookingsScreen from '../screens/customer/MyCustomerBookingsScreen';
 
-// 💬 ChatBox Assistant
+// ChatBox Assistant
 import ChatBoxScreen from '../screens/common/ChatBoxScreen';
 
-// ❓ FAQ & Support
+// FAQ Support
 import FAQScreen from '../screens/common/FAQScreen';
 
 const Tab = createBottomTabNavigator();
@@ -47,7 +47,7 @@ export default function CustomerTabNavigator() {
         },
       }}
     >
-      {/* 🏠 HOME */}
+      {/* HOME */}
       <Tab.Screen
         name="CustomerHome"
         component={CustomerDashboardScreen}
@@ -59,7 +59,7 @@ export default function CustomerTabNavigator() {
         }}
       />
 
-      {/* 🛍 PRODUCTS */}
+      {/* PRODUCTS */}
       <Tab.Screen
         name="BuyProducts"
         component={BuyProductsScreen}
@@ -71,7 +71,7 @@ export default function CustomerTabNavigator() {
         }}
       />
 
-      {/* 🚜 TRACTORS */}
+      {/* TRACTORS */}
       <Tab.Screen
         name="CustomerRentTractor"
         component={RentTractorScreen}
@@ -83,7 +83,7 @@ export default function CustomerTabNavigator() {
         }}
       />
 
-      {/* 📄 BOOKINGS */}
+      {/* BOOKINGS */}
       <Tab.Screen
         name="MyBookings"
         component={MyCustomerBookingsScreen}
@@ -95,7 +95,7 @@ export default function CustomerTabNavigator() {
         }}
       />
 
-      {/* 🔔 NOTIFICATIONS */}
+      {/* NOTIFICATIONS */}
       <Tab.Screen
         name="Notifications"
         component={NotificationsScreen}
@@ -107,31 +107,25 @@ export default function CustomerTabNavigator() {
         }}
       />
 
-      {/* ❓ FAQ */}
+      {/* FAQ - Hidden from main tabs */}
       <Tab.Screen
         name="FAQ"
         component={FAQScreen}
         options={{
-          tabBarLabel: 'Help',
-          tabBarIcon: ({ color }) => (
-            <TabIcon symbol="❓" color={color} />
-          ),
+          tabBarItemStyle: { display: 'none' },
         }}
       />
 
-      {/* � ChatBox Assistant */}
+      {/* ChatBox Assistant - Hidden from main tabs */}
       <Tab.Screen
         name="ChatBox"
         component={ChatBoxScreen}
         options={{
-          tabBarLabel: 'AI Chat',
-          tabBarIcon: ({ color }) => (
-            <TabIcon symbol="💬" color={color} />
-          ),
+          tabBarItemStyle: { display: 'none' },
         }}
       />
 
-      {/* �👤 PROFILE */}
+      {/* PROFILE */}
       <Tab.Screen
         name="CustomerProfile"
         component={CustomerProfileScreen}

@@ -141,7 +141,64 @@ app.post('/login', async (req, res) => {
 });
 
 //////////////////////////////////////////////////////
-// 🚜 REGISTER TRACTOR
+// �️ DELETE ALL USERS
+//////////////////////////////////////////////////////
+app.delete('/delete-all-users', async (req, res) => {
+  try {
+    console.log('🗑️ DELETE ALL USERS REQUEST');
+
+    // Clear in-memory users
+    inMemoryUsers.length = 0;
+
+    // Scan all users from DynamoDB
+    try {
+      const scanResult = await ddb.send(
+        new ScanCommand({
+          TableName: 'Users',
+        })
+      );
+
+      console.log(`📊 Found ${scanResult.Items?.length || 0} users to delete`);
+
+      // Delete each user
+      if (scanResult.Items && scanResult.Items.length > 0) {
+        for (const user of scanResult.Items) {
+          try {
+            await ddb.send(
+              new DeleteCommand({
+                TableName: 'Users',
+                Key: { userId: user.userId },
+              })
+            );
+            console.log(`✅ Deleted user: ${user.userId}`);
+          } catch (deleteError) {
+            console.error(`❌ Error deleting user ${user.userId}:`, deleteError);
+          }
+        }
+      }
+
+      res.json({ 
+        success: true, 
+        message: `All users deleted (${scanResult.Items?.length || 0} users removed)`,
+        deletedCount: scanResult.Items?.length || 0 
+      });
+    } catch (ddbError) {
+      console.error('🔥 DELETE ALL USERS DYNAMODB ERROR', ddbError);
+      // Even if DynamoDB fails, we've already cleared in-memory
+      res.json({ 
+        success: true, 
+        message: 'In-memory users cleared (local storage cleaned)',
+        deletedCount: 0 
+      });
+    }
+  } catch (err) {
+    console.error("🔥 DELETE ALL USERS ERROR:", err);
+    res.json({ success: false, error: err.message });
+  }
+});
+
+//////////////////////////////////////////////////////
+// �🚜 REGISTER TRACTOR
 //////////////////////////////////////////////////////
 app.post('/register-tractor', async (req, res) => {
   try {

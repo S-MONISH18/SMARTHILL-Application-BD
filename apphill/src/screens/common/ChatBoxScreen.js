@@ -17,6 +17,7 @@ import colors from '../../theme/colors';
 import spacing from '../../theme/spacing';
 import typography from '../../theme/typography';
 import PageHeader from '../../components/PageHeader';
+import MenuButton from '../../components/MenuButton';
 
 const ChatBoxScreen = () => {
   const [messages, setMessages] = useState([
@@ -30,6 +31,8 @@ const ChatBoxScreen = () => {
   const [userInput, setUserInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [isOfflineMode, setIsOfflineMode] = useState(false);
+  const [networkStatus, setNetworkStatus] = useState('no-network');
   const flatListRef = useRef(null);
 
   // Scroll to bottom when new messages arrive
@@ -83,10 +86,11 @@ const ChatBoxScreen = () => {
           text: response.message,
           role: 'assistant',
           timestamp: response.timestamp,
+          isFallback: response.isFallback,
         };
         setMessages(prev => [...prev, assistantMessage]);
       } else {
-        console.error('❌ Error in response:', response.error);
+        console.error('Error in response:', response.error);
         setError(response.error || 'Failed to get response');
         const errorMessage = {
           id: Date.now().toString(),
@@ -98,7 +102,7 @@ const ChatBoxScreen = () => {
         setMessages(prev => [...prev, errorMessage]);
       }
     } catch (err) {
-      console.error('💥 Chat error:', err);
+      console.error('Chat error:', err);
       setError('Network error. Please check your connection and try again.');
       const errorMessage = {
         id: Date.now().toString(),
@@ -119,6 +123,7 @@ const ChatBoxScreen = () => {
         styles.messageBubble,
         item.role === 'user' ? styles.userBubble : styles.assistantBubble,
         item.isError && styles.errorBubble,
+        item.isFallback && styles.fallbackBubble,
       ]}
     >
       <Text
@@ -137,6 +142,7 @@ const ChatBoxScreen = () => {
         ]}
       >
         {item.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+        {item.isFallback && ' 📚'}
       </Text>
     </View>
   );
@@ -147,7 +153,17 @@ const ChatBoxScreen = () => {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardAvoid}
       >
-        <PageHeader title="SmartHill Assistant" subtitle="Ask farming questions" />
+        <PageHeader 
+          title="SmartHill Assistant" 
+          subtitle="Ask farming questions"
+          rightElement={
+            <MenuButton 
+              networkStatus={networkStatus}
+              isOfflineMode={isOfflineMode}
+              onOfflineModeChange={setIsOfflineMode}
+            />
+          }
+        />
 
         <FlatList
           ref={flatListRef}
@@ -229,6 +245,11 @@ const styles = StyleSheet.create({
   errorBubble: {
     backgroundColor: colors.error,
     alignSelf: 'flex-start',
+  },
+  fallbackBubble: {
+    borderWidth: 1,
+    borderColor: '#FFA500',
+    opacity: 0.95,
   },
   messageText: {
     marginBottom: spacing.xs,
