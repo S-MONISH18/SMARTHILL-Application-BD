@@ -14,6 +14,10 @@ const API_HOSTS = {
 // For your current setup (physical device + adb reverse): use 'local'.
 const BASE_URL = API_HOSTS.local;
 
+// ✅ Export BASE_URL so other screens (e.g. CropPredictionScreen) can reuse
+// the same host without hardcoding 10.0.2.2 or localhost separately.
+export { BASE_URL };
+
 //////////////////////////////////////////////////////
 // 🔥 COMMON REQUEST
 //////////////////////////////////////////////////////

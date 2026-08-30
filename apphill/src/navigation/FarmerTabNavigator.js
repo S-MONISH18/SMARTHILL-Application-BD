@@ -31,6 +31,9 @@ import ChatBoxScreen from '../screens/common/ChatBoxScreen';
 // ❓ FAQ & Support
 import FAQScreen from '../screens/common/FAQScreen';
 
+// 🌱 Crop Prediction
+import CropPredictionScreen from '../screens/farmer/CropPredictionScreen';
+
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
@@ -177,6 +180,15 @@ export default function FarmerTabNavigator() {
       <Tab.Screen
         name="ChatBox"
         component={ChatBoxScreen}
+        options={{
+          tabBarItemStyle: { display: 'none' },
+        }}
+      />
+
+      {/* 🌱 Crop Prediction - Hidden from main tabs */}
+      <Tab.Screen
+        name="CropPrediction"
+        component={CropPredictionScreen}
         options={{
           tabBarItemStyle: { display: 'none' },
         }}

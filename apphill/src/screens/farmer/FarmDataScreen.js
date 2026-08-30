@@ -174,7 +174,7 @@ export default function FarmDataScreen() {
                 <Text style={styles.sensorIcon}>🌡️</Text>
                 <Text style={typography.label}>Temperature</Text>
                 <Text style={[typography.h3, styles.sensorValue]}>
-                  {sensorData.node1.ph.toFixed(2)}°C
+                  {sensorData.node1.temperature.toFixed(2)}°C
                 </Text>
               </View>
 
@@ -182,7 +182,7 @@ export default function FarmDataScreen() {
                 <Text style={styles.sensorIcon}>📊</Text>
                 <Text style={typography.label}>pH Level</Text>
                 <Text style={[typography.h3, styles.sensorValue]}>
-                  {sensorData.node1.temperature.toFixed(1)}
+                  {sensorData.node1.ph.toFixed(1)}
                 </Text>
               </View>
 
@@ -219,7 +219,7 @@ export default function FarmDataScreen() {
                 <Text style={styles.sensorIcon}>🌡️</Text>
                 <Text style={typography.label}>Temperature</Text>
                 <Text style={[typography.h3, styles.sensorValue]}>
-                  {sensorData.node2.ph.toFixed(2)}°C
+                  {sensorData.node2.temperature.toFixed(2)}°C
                 </Text>
               </View>
 
@@ -227,7 +227,7 @@ export default function FarmDataScreen() {
                 <Text style={styles.sensorIcon}>📊</Text>
                 <Text style={typography.label}>pH Level</Text>
                 <Text style={[typography.h3, styles.sensorValue]}>
-                  {sensorData.node2.temperature.toFixed(1)}
+                  {sensorData.node2.ph.toFixed(1)}
                 </Text>
               </View>
 

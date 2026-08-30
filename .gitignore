@@ -1,1 +1,36 @@
-node_modules
+# ── Node ────────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-error.log
+
+# ── Environment / Secrets ────────────────────────
+.env.local
+.env.*.local
+.env
+
+# ── Python / ML ──────────────────────────────────
+ml_service/venv/
+ml_service/__pycache__/
+ml_service/*.pyc
+__pycache__/
+*.pyc
+
+# ── Logs ─────────────────────────────────────────
+*.log
+backend_server.log
+metro_bundler.log
+ml_service/ml_service.log
+build.log
+
+# ── React Native / Android / iOS ─────────────────
+apphill/android/build/
+apphill/android/.gradle/
+apphill/android/local.properties
+apphill/ios/build/
+apphill/ios/Pods/
+apphill/.metro-health-check*
+
+# ── Misc ─────────────────────────────────────────
+.DS_Store
+*.keystore
+!debug.keystore

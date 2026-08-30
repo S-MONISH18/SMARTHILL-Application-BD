@@ -2,6 +2,7 @@ console.log("🔥 RUNNING FILE:", __filename);
 
 const express = require('express');
 const cors = require('cors');
+const http = require('http');
 
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
 const {
@@ -783,6 +784,70 @@ app.get('/notifications/:userId', async (req, res) => {
     console.error("🔥 NOTIFICATION ERROR:", err);
     res.json({ success: false });
   }
+});
+
+//////////////////////////////////////////////////////
+// 🌱 CROP PREDICTION (Proxy to Python ML Service)
+//////////////////////////////////////////////////////
+const ML_SERVICE_HOST = '127.0.0.1';
+const ML_SERVICE_PORT = 5001;
+
+app.post('/predict-crop', (req, res) => {
+  const body = req.body;
+  console.log('🌾 CROP PREDICTION REQUEST:', body);
+
+  const required = ['N', 'P', 'K', 'temperature', 'humidity', 'ph', 'rainfall'];
+  const missing = required.filter(f => body[f] === undefined || body[f] === null || body[f] === '');
+
+  if (missing.length > 0) {
+    return res.json({ success: false, error: `Missing fields: ${missing.join(', ')}` });
+  }
+
+  const payload = JSON.stringify({
+    N:           parseFloat(body.N),
+    P:           parseFloat(body.P),
+    K:           parseFloat(body.K),
+    temperature: parseFloat(body.temperature),
+    humidity:    parseFloat(body.humidity),
+    ph:          parseFloat(body.ph),
+    rainfall:    parseFloat(body.rainfall),
+  });
+
+  const options = {
+    hostname: ML_SERVICE_HOST,
+    port:     ML_SERVICE_PORT,
+    path:     '/predict',
+    method:   'POST',
+    headers:  {
+      'Content-Type':   'application/json',
+      'Content-Length': Buffer.byteLength(payload),
+    },
+  };
+
+  const mlReq = http.request(options, (mlRes) => {
+    let data = '';
+    mlRes.on('data', (chunk) => { data += chunk; });
+    mlRes.on('end', () => {
+      try {
+        const parsed = JSON.parse(data);
+        console.log('✅ ML Service response:', parsed);
+        res.json(parsed);
+      } catch (e) {
+        res.json({ success: false, error: 'Invalid response from ML service' });
+      }
+    });
+  });
+
+  mlReq.on('error', (err) => {
+    console.error('🔥 ML SERVICE ERROR:', err.message);
+    res.json({
+      success: false,
+      error: 'ML service is not running. Start it with: cd ml_service && python app.py',
+    });
+  });
+
+  mlReq.write(payload);
+  mlReq.end();
 });
 
 //////////////////////////////////////////////////////

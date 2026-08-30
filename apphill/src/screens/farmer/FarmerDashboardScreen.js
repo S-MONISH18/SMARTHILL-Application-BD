@@ -204,6 +204,21 @@ export default function FarmerDashboardScreen() {
           <Text style={styles.registerTractorArrow}>→</Text>
         </TouchableOpacity>
 
+        {/* 🌱 CROP PREDICTION CARD */}
+        <TouchableOpacity
+          style={styles.cropPredictCard}
+          onPress={() => navigation.navigate('CropPrediction')}
+        >
+          <Text style={styles.registerTractorIcon}>🌿</Text>
+          <View style={styles.registerTractorContent}>
+            <Text style={[typography.h4, styles.cropPredictTitle]}>Crop Prediction</Text>
+            <Text style={[typography.bodySmall, styles.registerTractorText]}>
+              Enter NPK &amp; climate data to get AI crop advice
+            </Text>
+          </View>
+          <Text style={styles.cropPredictArrow}>→</Text>
+        </TouchableOpacity>
+
         <AppCard style={styles.areaCard}>
           <InputField
             label="Farm Area (acres)"
@@ -564,6 +579,25 @@ const styles = StyleSheet.create({
   registerTractorArrow: {
     fontSize: 20,
     color: colors.primary,
+  },
+  cropPredictCard: {
+    backgroundColor: '#052e16' + '15',
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#16a34a',
+    padding: spacing.lg,
+    marginBottom: spacing.xl,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  cropPredictTitle: {
+    color: '#16a34a',
+    marginBottom: spacing.xs,
+  },
+  cropPredictArrow: {
+    fontSize: 20,
+    color: '#16a34a',
   },
   section: {
     marginBottom: spacing.xxl,

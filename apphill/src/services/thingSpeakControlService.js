@@ -67,10 +67,13 @@ export const updateThingSpeakFields = async (motor, fertilizer, valve1, valve2) 
 
     const url = `${WRITE_API}&field3=${motor}&field2=${fertilizer}&field4=${valve1}&field5=${valve2}`;
     
+    const controller = new AbortController();
+    const tid = setTimeout(() => controller.abort(), 10000);
     const response = await fetch(url, {
       method: 'GET',
-      timeout: 10000,
+      signal: controller.signal,
     });
+    clearTimeout(tid);
 
     if (!response.ok) {
       throw new Error(`HTTP Error: ${response.status}`);
