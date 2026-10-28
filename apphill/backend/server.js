@@ -106,6 +106,38 @@ app.post('/signup', async (req, res) => {
 });
 
 //////////////////////////////////////////////////////
+// 👥 GET ALL USERS
+//////////////////////////////////////////////////////
+app.get('/users', async (req, res) => {
+  try {
+    let users = [];
+    let source = 'dynamodb';
+
+    try {
+      const data = await ddb.send(
+        new ScanCommand({
+          TableName: 'Users',
+        })
+      );
+      users = data.Items || [];
+    } catch (ddbError) {
+      source = 'in-memory';
+      users = inMemoryUsers;
+    }
+
+    res.json({
+      success: true,
+      count: users.length,
+      source,
+      users,
+    });
+  } catch (err) {
+    console.error("🔥 GET USERS ERROR:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+//////////////////////////////////////////////////////
 // ✅ LOGIN
 //////////////////////////////////////////////////////
 app.post('/login', async (req, res) => {
