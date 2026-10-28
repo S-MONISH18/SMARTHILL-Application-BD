@@ -1,31 +1,17 @@
-import React, { useEffect } from 'react';
+import React from 'react';
+import { StatusBar } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from './src/context/AuthContext';
 import RootNavigator from './src/navigation/RootNavigator';
 
-// 🔥 Disable native screens optimization
 import { enableScreens } from 'react-native-screens';
-enableScreens(false);
-
-// 🔥 Import NativeModules
-import { NativeModules } from 'react-native';
+enableScreens(true);
 
 export default function App() {
-
-  useEffect(() => {
-    // 🔥 Force remove FLAG_SECURE continuously
-    const interval = setInterval(() => {
-      try {
-        NativeModules?.RNAndroidWindowSecure?.clearSecureFlag?.();
-      } catch (e) {}
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, []);
-
   return (
     <SafeAreaProvider>
+      <StatusBar barStyle="dark-content" backgroundColor="#f5f5f5" />
       <AuthProvider>
         <NavigationContainer>
           <RootNavigator />

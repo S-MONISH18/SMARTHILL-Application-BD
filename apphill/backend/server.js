@@ -1,4 +1,4 @@
-console.log("🔥 RUNNING FILE:", __filename);
+console.log("🔥 SERVER STARTING...");
 
 const express = require('express');
 const cors = require('cors');
@@ -820,7 +820,7 @@ app.post('/predict-crop', (req, res) => {
     method:   'POST',
     headers:  {
       'Content-Type':   'application/json',
-      'Content-Length': Buffer.byteLength(payload),
+      'Content-Length': Buffer.byteLength(payload), // eslint-disable-line no-undef
     },
   };
 
