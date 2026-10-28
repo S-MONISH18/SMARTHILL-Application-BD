@@ -1,3 +1,4 @@
+
 # OSX
 #
 .DS_Store
@@ -34,6 +35,15 @@ local.properties
 *.keystore
 !debug.keystore
 .kotlin/
+
+# Environment / Secrets
+.env
+.env.*
+*.env
+**/.env
+**/.env.*
+backend/.env
+backend/.env.*
 
 # node.js
 #

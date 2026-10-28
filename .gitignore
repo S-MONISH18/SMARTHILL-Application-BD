@@ -4,9 +4,13 @@ npm-debug.log*
 yarn-error.log
 
 # ── Environment / Secrets ────────────────────────
-.env.local
-.env.*.local
 .env
+.env.*
+*.env
+**/.env
+**/.env.*
+apphill/backend/.env
+apphill/backend/.env.*
 
 # ── Python / ML ──────────────────────────────────
 ml_service/venv/

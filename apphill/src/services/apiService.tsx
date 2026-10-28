@@ -45,7 +45,7 @@ const request = async (endpoint, method = 'GET', body = null, timeoutMs = 30000)
     }
 
     if (!response.ok) {
-      console.error('API 404/500:', {
+      console.warn('API Response Warning:', {
         endpoint,
         method,
         status: response.status,

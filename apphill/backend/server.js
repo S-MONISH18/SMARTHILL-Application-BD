@@ -7,16 +7,16 @@ const cors = require('cors');
 const http = require('http');
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
+const rateLimit = require('express-rate-limit');
 
-const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
-const {
-  DynamoDBDocumentClient,
-  PutCommand,
-  GetCommand,
-  ScanCommand,
-  UpdateCommand,
-  DeleteCommand,
-} = require('@aws-sdk/lib-dynamodb');
+// 🍃 MongoDB Atlas Client & Models
+const { connectDB, isDBConnected } = require('./db');
+const User = require('./models/User');
+const Tractor = require('./models/Tractor');
+const Product = require('./models/Product');
+const Booking = require('./models/Booking');
+const Order = require('./models/Order');
+const Notification = require('./models/Notification');
 
 const app = express();
 
@@ -24,14 +24,16 @@ const app = express();
 // ⚙️ CONFIGURATION & ENVIRONMENT
 //////////////////////////////////////////////////////
 const PORT = process.env.PORT || 3000;
-const AWS_REGION = process.env.AWS_REGION || 'ap-south-1';
 const ML_SERVICE_HOST = process.env.ML_SERVICE_HOST || '127.0.0.1';
 const ML_SERVICE_PORT = parseInt(process.env.ML_SERVICE_PORT || '5001', 10);
 const ADMIN_SECRET = process.env.ADMIN_SECRET || 'smarthill_admin_secret_2026';
 
+// Connect to MongoDB Atlas (if URI provided)
+connectDB();
+
 //////////////////////////////////////////////////////
 // 🧠 IN-MEMORY FALLBACK STORES
-// Used when DynamoDB is inaccessible or in local dev
+// Used when MongoDB Atlas URI is not yet configured or offline
 //////////////////////////////////////////////////////
 const inMemoryUsers = [];
 const inMemoryTractors = [];
@@ -47,15 +49,42 @@ const generateId = (prefix) => `${prefix}_${crypto.randomUUID()}`;
 
 const sanitizeUser = (user) => {
   if (!user) return null;
-  const { password, ...safeUser } = user;
+  const userObj = user.toObject ? user.toObject() : { ...user };
+  const { password, _id, __v, ...safeUser } = userObj;
   return safeUser;
 };
 
 //////////////////////////////////////////////////////
-// 🌐 MIDDLEWARE
+// 🌐 MIDDLEWARE & RATE LIMITING
 //////////////////////////////////////////////////////
 app.use(cors());
 app.use(express.json());
+
+// Global API rate limiter (500 requests per 15 minutes)
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 500,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: 'Too many requests from this IP, please try again after 15 minutes',
+  },
+});
+
+// Strict rate limiter for Auth endpoints (20 attempts per 15 minutes)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: 'Too many login or signup attempts from this IP, please try again after 15 minutes',
+  },
+});
+
+app.use(apiLimiter);
 
 // Global request logger
 app.use((req, res, next) => {
@@ -64,25 +93,19 @@ app.use((req, res, next) => {
 });
 
 //////////////////////////////////////////////////////
-// 🔥 HEALTH TEST ROUTE
+// 🔥 HEALTH & DB STATUS ROUTE
 //////////////////////////////////////////////////////
 app.get('/test', (req, res) => {
-  res.send('SERVER OK');
+  res.json({
+    status: 'SERVER OK',
+    database: isDBConnected() ? 'MongoDB Atlas (Connected)' : 'In-Memory Fallback (Active)',
+  });
 });
-
-//////////////////////////////////////////////////////
-// ☁️ AWS DYNAMODB CLIENT
-//////////////////////////////////////////////////////
-const client = new DynamoDBClient({
-  region: AWS_REGION,
-});
-
-const ddb = DynamoDBDocumentClient.from(client);
 
 //////////////////////////////////////////////////////
 // 🔐 AUTH: SIGNUP
 //////////////////////////////////////////////////////
-app.post('/signup', async (req, res) => {
+app.post('/signup', authLimiter, async (req, res) => {
   try {
     const { name, phone, password, role } = req.body || {};
     const cleanPhone = phone?.toString().trim();
@@ -97,20 +120,14 @@ app.post('/signup', async (req, res) => {
     console.log(`📝 SIGNUP REQUEST for phone: ${cleanPhone}, role: ${role}`);
 
     // Check if user already exists
-    let existing;
-    try {
-      existing = await ddb.send(
-        new GetCommand({
-          TableName: 'Users',
-          Key: { userId: cleanPhone },
-        })
-      );
-    } catch (ddbError) {
-      console.warn('⚠️ DynamoDB unavailable for signup check, checking in-memory fallback');
-      existing = { Item: inMemoryUsers.find((u) => u.userId === cleanPhone) };
+    let existing = null;
+    if (isDBConnected()) {
+      existing = await User.findOne({ $or: [{ userId: cleanPhone }, { phone: cleanPhone }] });
+    } else {
+      existing = inMemoryUsers.find((u) => u.userId === cleanPhone || u.phone === cleanPhone);
     }
 
-    if (existing?.Item) {
+    if (existing) {
       return res.status(409).json({ success: false, message: 'User already exists' });
     }
 
@@ -126,16 +143,11 @@ app.post('/signup', async (req, res) => {
       createdAt: new Date().toISOString(),
     };
 
-    try {
-      await ddb.send(
-        new PutCommand({
-          TableName: 'Users',
-          Item: userItem,
-        })
-      );
-      console.log(`✅ User ${cleanPhone} saved to DynamoDB`);
-    } catch (ddbError) {
-      console.warn('⚠️ DynamoDB PutCommand failed, saving to in-memory fallback');
+    if (isDBConnected()) {
+      await User.create(userItem);
+      console.log(`🍃 User ${cleanPhone} saved to MongoDB Atlas`);
+    } else {
+      console.warn('⚠️ MongoDB not connected, saving to in-memory fallback');
       inMemoryUsers.push(userItem);
     }
 
@@ -156,21 +168,14 @@ app.post('/signup', async (req, res) => {
 app.get('/users', async (req, res) => {
   try {
     let rawUsers = [];
-    let source = 'dynamodb';
+    let source = isDBConnected() ? 'mongodb-atlas' : 'in-memory';
 
-    try {
-      const data = await ddb.send(
-        new ScanCommand({
-          TableName: 'Users',
-        })
-      );
-      rawUsers = data.Items || [];
-    } catch (ddbError) {
-      source = 'in-memory';
+    if (isDBConnected()) {
+      rawUsers = await User.find().lean();
+    } else {
       rawUsers = inMemoryUsers;
     }
 
-    // Sanitize passwords out of response
     const users = rawUsers.map(sanitizeUser);
 
     res.json({
@@ -188,7 +193,7 @@ app.get('/users', async (req, res) => {
 //////////////////////////////////////////////////////
 // 🔐 AUTH: LOGIN
 //////////////////////////////////////////////////////
-app.post('/login', async (req, res) => {
+app.post('/login', authLimiter, async (req, res) => {
   try {
     const { phone, password } = req.body || {};
     const cleanPhone = phone?.toString().trim();
@@ -200,25 +205,18 @@ app.post('/login', async (req, res) => {
       });
     }
 
-    let result;
-    try {
-      result = await ddb.send(
-        new GetCommand({
-          TableName: 'Users',
-          Key: { userId: cleanPhone },
-        })
-      );
-    } catch (ddbError) {
-      console.warn('⚠️ DynamoDB unavailable for login, checking in-memory fallback');
-      result = { Item: inMemoryUsers.find((u) => u.userId === cleanPhone) };
+    let user = null;
+    if (isDBConnected()) {
+      user = await User.findOne({ $or: [{ userId: cleanPhone }, { phone: cleanPhone }] });
+    } else {
+      user = inMemoryUsers.find((u) => u.userId === cleanPhone || u.phone === cleanPhone);
     }
 
-    if (!result?.Item) {
+    if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    // Verify bcrypt hash (or fallback plaintext for legacy development data)
-    const storedPassword = result.Item.password;
+    const storedPassword = user.password;
     const isPasswordValid =
       storedPassword === password.toString() ||
       (await bcrypt.compare(password.toString(), storedPassword));
@@ -227,10 +225,10 @@ app.post('/login', async (req, res) => {
       return res.status(401).json({ success: false, message: 'Wrong password' });
     }
 
-    console.log(`✅ Login successful for ${cleanPhone} (${result.Item.role})`);
+    console.log(`✅ Login successful for ${cleanPhone} (${user.role})`);
     res.json({
       success: true,
-      user: sanitizeUser(result.Item),
+      user: sanitizeUser(user),
     });
   } catch (err) {
     console.error('🔥 LOGIN ERROR:', err);
@@ -253,46 +251,19 @@ app.delete('/delete-all-users', async (req, res) => {
     }
 
     console.log('🗑️ AUTHORIZED DELETE ALL USERS REQUEST');
-
     inMemoryUsers.length = 0;
 
     let deletedCount = 0;
-    try {
-      const scanResult = await ddb.send(
-        new ScanCommand({
-          TableName: 'Users',
-        })
-      );
-
-      if (scanResult.Items && scanResult.Items.length > 0) {
-        for (const user of scanResult.Items) {
-          try {
-            await ddb.send(
-              new DeleteCommand({
-                TableName: 'Users',
-                Key: { userId: user.userId },
-              })
-            );
-            deletedCount++;
-          } catch (deleteError) {
-            console.error(`❌ Error deleting user ${user.userId}:`, deleteError);
-          }
-        }
-      }
-
-      res.json({
-        success: true,
-        message: `All users deleted (${deletedCount} removed)`,
-        deletedCount,
-      });
-    } catch (ddbError) {
-      console.warn('⚠️ DynamoDB unavailable, in-memory users cleared');
-      res.json({
-        success: true,
-        message: 'In-memory users cleared',
-        deletedCount: 0,
-      });
+    if (isDBConnected()) {
+      const result = await User.deleteMany({});
+      deletedCount = result.deletedCount || 0;
     }
+
+    res.json({
+      success: true,
+      message: `All users deleted (${deletedCount} removed from MongoDB Atlas)`,
+      deletedCount,
+    });
   } catch (err) {
     console.error('🔥 DELETE ALL USERS ERROR:', err);
     res.status(500).json({ success: false, error: err.message });
@@ -328,16 +299,10 @@ app.post('/register-tractor', async (req, res) => {
       createdAt: new Date().toISOString(),
     };
 
-    try {
-      await ddb.send(
-        new PutCommand({
-          TableName: 'Tractors',
-          Item: tractorItem,
-        })
-      );
-      console.log(`✅ Tractor ${tractorId} saved to DynamoDB`);
-    } catch (ddbError) {
-      console.warn('⚠️ DynamoDB unavailable for tractor registration, saving in-memory');
+    if (isDBConnected()) {
+      await Tractor.create(tractorItem);
+      console.log(`🍃 Tractor ${tractorId} saved to MongoDB Atlas`);
+    } else {
       inMemoryTractors.push(tractorItem);
     }
 
@@ -359,18 +324,9 @@ app.get('/tractors', async (req, res) => {
   try {
     let items = [];
 
-    try {
-      const data = await ddb.send(
-        new ScanCommand({
-          TableName: 'Tractors',
-          FilterExpression: '#status = :s',
-          ExpressionAttributeNames: { '#status': 'status' },
-          ExpressionAttributeValues: { ':s': 'Available' },
-        })
-      );
-      items = data.Items || [];
-    } catch (err) {
-      console.warn('⚠️ DynamoDB unavailable for /tractors, using in-memory');
+    if (isDBConnected()) {
+      items = await Tractor.find({ status: 'Available' }).lean();
+    } else {
       items = inMemoryTractors.filter((t) => t.status === 'Available');
     }
 
@@ -416,16 +372,10 @@ app.post('/products', async (req, res) => {
       createdAt: new Date().toISOString(),
     };
 
-    try {
-      await ddb.send(
-        new PutCommand({
-          TableName: 'Products',
-          Item: productItem,
-        })
-      );
-      console.log(`✅ Product ${productId} saved to DynamoDB`);
-    } catch (ddbError) {
-      console.warn('⚠️ DynamoDB unavailable for product creation, saving in-memory');
+    if (isDBConnected()) {
+      await Product.create(productItem);
+      console.log(`🍃 Product ${productId} saved to MongoDB Atlas`);
+    } else {
       inMemoryProducts.push(productItem);
     }
 
@@ -447,15 +397,9 @@ app.get('/products', async (req, res) => {
   try {
     let items = [];
 
-    try {
-      const data = await ddb.send(
-        new ScanCommand({
-          TableName: 'Products',
-        })
-      );
-      items = data.Items || [];
-    } catch (ddbError) {
-      console.warn('⚠️ DynamoDB unavailable for products list, using in-memory');
+    if (isDBConnected()) {
+      items = await Product.find().lean();
+    } else {
       items = inMemoryProducts;
     }
 
@@ -505,23 +449,11 @@ app.post('/book-tractor', async (req, res) => {
       createdAt: new Date().toISOString(),
     };
 
-    try {
-      await ddb.send(
-        new PutCommand({
-          TableName: 'Bookings',
-          Item: bookingItem,
-        })
-      );
-
-      await ddb.send(
-        new PutCommand({
-          TableName: 'Notifications',
-          Item: notificationItem,
-        })
-      );
-      console.log(`✅ Booking ${bookingId} and notification saved to DynamoDB`);
-    } catch (ddbError) {
-      console.warn('⚠️ DynamoDB unavailable for booking, saving in-memory');
+    if (isDBConnected()) {
+      await Booking.create(bookingItem);
+      await Notification.create(notificationItem);
+      console.log(`🍃 Booking ${bookingId} saved to MongoDB Atlas`);
+    } else {
       inMemoryBookings.push(bookingItem);
       inMemoryNotifications.push(notificationItem);
     }
@@ -541,17 +473,9 @@ app.get('/bookings/:phone', async (req, res) => {
     const phone = req.params.phone?.toString().trim();
     let items = [];
 
-    try {
-      const data = await ddb.send(
-        new ScanCommand({
-          TableName: 'Bookings',
-          FilterExpression: 'farmerPhone = :p',
-          ExpressionAttributeValues: { ':p': phone },
-        })
-      );
-      items = data.Items || [];
-    } catch (ddbError) {
-      console.warn('⚠️ DynamoDB unavailable for /bookings, using in-memory');
+    if (isDBConnected()) {
+      items = await Booking.find({ farmerPhone: phone }).lean();
+    } else {
       items = inMemoryBookings.filter((b) => b.farmerPhone === phone);
     }
 
@@ -570,17 +494,11 @@ app.get('/owner-requests/:owner', async (req, res) => {
     const owner = req.params.owner?.toString().trim();
     let items = [];
 
-    try {
-      const data = await ddb.send(
-        new ScanCommand({
-          TableName: 'Bookings',
-          FilterExpression: 'ownerPhone = :o OR ownerName = :o',
-          ExpressionAttributeValues: { ':o': owner },
-        })
-      );
-      items = data.Items || [];
-    } catch (ddbError) {
-      console.warn('⚠️ DynamoDB unavailable for /owner-requests, using in-memory');
+    if (isDBConnected()) {
+      items = await Booking.find({
+        $or: [{ ownerPhone: owner }, { ownerName: owner }],
+      }).lean();
+    } else {
       items = inMemoryBookings.filter(
         (b) => b.ownerPhone === owner || b.ownerName === owner
       );
@@ -606,41 +524,25 @@ app.post('/update-booking', async (req, res) => {
 
     let updatedBooking = null;
 
-    try {
-      const result = await ddb.send(
-        new UpdateCommand({
-          TableName: 'Bookings',
-          Key: { bookingId },
-          UpdateExpression: 'SET #s = :status',
-          ExpressionAttributeNames: { '#s': 'status' },
-          ExpressionAttributeValues: { ':status': status },
-          ReturnValues: 'ALL_NEW',
-        })
-      );
+    if (isDBConnected()) {
+      updatedBooking = await Booking.findOneAndUpdate(
+        { bookingId },
+        { status },
+        { new: true }
+      ).lean();
 
-      updatedBooking = result.Attributes;
       if (updatedBooking) {
-        await ddb.send(
-          new PutCommand({
-            TableName: 'Notifications',
-            Item: {
-              notificationId: generateId('notif'),
-              userId: updatedBooking.farmerPhone,
-              message: `📣 Booking ${status}: ${updatedBooking.tractorModel}`,
-              createdAt: new Date().toISOString(),
-            },
-          })
-        );
+        await Notification.create({
+          notificationId: generateId('notif'),
+          userId: updatedBooking.farmerPhone,
+          message: `📣 Booking ${status}: ${updatedBooking.tractorModel}`,
+        });
       }
-    } catch (ddbError) {
-      console.warn('⚠️ DynamoDB unavailable for update-booking, updating in-memory');
+    } else {
       const booking = inMemoryBookings.find((b) => b.bookingId === bookingId);
       if (booking) {
         booking.status = status;
         updatedBooking = booking;
-      }
-
-      if (updatedBooking) {
         inMemoryNotifications.push({
           notificationId: generateId('notif'),
           userId: updatedBooking.farmerPhone,
@@ -671,15 +573,9 @@ const handleDeleteBooking = async (req, res) => {
 
     console.log(`🗑️ DELETE BOOKING REQUEST: ${finalBookingId}`);
 
-    try {
-      await ddb.send(
-        new DeleteCommand({
-          TableName: 'Bookings',
-          Key: { bookingId: finalBookingId },
-        })
-      );
-    } catch (ddbError) {
-      console.warn('⚠️ DynamoDB unavailable for delete-booking, removing from in-memory');
+    if (isDBConnected()) {
+      await Booking.deleteOne({ bookingId: finalBookingId });
+    } else {
       const index = inMemoryBookings.findIndex(
         (b) => b.bookingId === finalBookingId || b.id === finalBookingId
       );
@@ -737,23 +633,11 @@ app.post('/buy-product', async (req, res) => {
       createdAt: new Date().toISOString(),
     };
 
-    try {
-      await ddb.send(
-        new PutCommand({
-          TableName: 'Orders',
-          Item: orderItem,
-        })
-      );
-
-      await ddb.send(
-        new PutCommand({
-          TableName: 'Notifications',
-          Item: notificationItem,
-        })
-      );
-      console.log(`✅ Order ${orderId} and notification saved to DynamoDB`);
-    } catch (dbErr) {
-      console.warn('⚠️ DynamoDB unavailable for buy-product, saving in-memory');
+    if (isDBConnected()) {
+      await Order.create(orderItem);
+      await Notification.create(notificationItem);
+      console.log(`🍃 Order ${orderId} saved to MongoDB Atlas`);
+    } else {
       inMemoryOrders.push(orderItem);
       inMemoryNotifications.push(notificationItem);
     }
@@ -777,17 +661,9 @@ app.get('/orders/:phone', async (req, res) => {
     const phone = req.params.phone?.toString().trim();
     let items = [];
 
-    try {
-      const data = await ddb.send(
-        new ScanCommand({
-          TableName: 'Orders',
-          FilterExpression: 'buyerPhone = :p',
-          ExpressionAttributeValues: { ':p': phone },
-        })
-      );
-      items = data.Items || [];
-    } catch (ddbError) {
-      console.warn('⚠️ DynamoDB unavailable for /orders, using in-memory');
+    if (isDBConnected()) {
+      items = await Order.find({ buyerPhone: phone }).lean();
+    } else {
       items = inMemoryOrders.filter((o) => o.buyerPhone === phone);
     }
 
@@ -811,17 +687,11 @@ app.get('/farmer-orders', async (req, res) => {
 
     let items = [];
 
-    try {
-      const data = await ddb.send(
-        new ScanCommand({
-          TableName: 'Orders',
-          FilterExpression: 'farmerPhone = :f OR farmerName = :f',
-          ExpressionAttributeValues: { ':f': farmerKey },
-        })
-      );
-      items = data.Items || [];
-    } catch (ddbError) {
-      console.warn('⚠️ DynamoDB unavailable for /farmer-orders, using in-memory');
+    if (isDBConnected()) {
+      items = await Order.find({
+        $or: [{ farmerPhone: farmerKey }, { farmerName: farmerKey }],
+      }).lean();
+    } else {
       items = inMemoryOrders.filter(
         (o) => o.farmerPhone === farmerKey || o.farmerName === farmerKey
       );
@@ -845,35 +715,23 @@ app.post('/update-order', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Missing orderId or status' });
     }
 
-    try {
-      const data = await ddb.send(
-        new UpdateCommand({
-          TableName: 'Orders',
-          Key: { orderId },
-          UpdateExpression: 'SET #s = :status',
-          ExpressionAttributeNames: { '#s': 'status' },
-          ExpressionAttributeValues: { ':status': status },
-          ReturnValues: 'ALL_NEW',
-        })
-      );
+    let updatedOrder = null;
 
-      const updatedOrder = data.Attributes;
+    if (isDBConnected()) {
+      updatedOrder = await Order.findOneAndUpdate(
+        { orderId },
+        { status },
+        { new: true }
+      ).lean();
 
       if (updatedOrder) {
-        await ddb.send(
-          new PutCommand({
-            TableName: 'Notifications',
-            Item: {
-              notificationId: generateId('notif'),
-              userId: updatedOrder.buyerPhone,
-              message: `🛒 Order ${status}: ${updatedOrder.productName}`,
-              createdAt: new Date().toISOString(),
-            },
-          })
-        );
+        await Notification.create({
+          notificationId: generateId('notif'),
+          userId: updatedOrder.buyerPhone,
+          message: `🛒 Order ${status}: ${updatedOrder.productName}`,
+        });
       }
-    } catch (ddbError) {
-      console.warn('⚠️ DynamoDB unavailable for update-order, updating in-memory');
+    } else {
       const order = inMemoryOrders.find((o) => o.orderId === orderId);
       if (order) {
         order.status = status;
@@ -901,17 +759,9 @@ app.get('/notifications/:userId', async (req, res) => {
     const userId = req.params.userId?.toString().trim();
     let items = [];
 
-    try {
-      const data = await ddb.send(
-        new ScanCommand({
-          TableName: 'Notifications',
-          FilterExpression: 'userId = :u',
-          ExpressionAttributeValues: { ':u': userId },
-        })
-      );
-      items = data.Items || [];
-    } catch (ddbError) {
-      console.warn('⚠️ DynamoDB unavailable for /notifications, using in-memory');
+    if (isDBConnected()) {
+      items = await Notification.find({ userId }).lean();
+    } else {
       items = inMemoryNotifications.filter((n) => n.userId === userId);
     }
 
