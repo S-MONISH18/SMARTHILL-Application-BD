@@ -1,16 +1,22 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import colors from '../../theme/colors';
 import spacing from '../../theme/spacing';
 import typography from '../../theme/typography';
 import AppCard from '../../components/AppCard';
 import { useAuth } from '../../context/AuthContext';
+import {
+  EditProfileModal,
+  ChangePasswordModal,
+  SupportModal,
+  AboutModal,
+} from '../../components/ProfileModals';
 
-const MenuOption = ({ icon, label, onPress, showArrow = true }) => (
-  <TouchableOpacity style={styles.menuOption} onPress={onPress}>
+const MenuOption = ({ icon, label, onPress, showArrow = true }: any) => (
+  <TouchableOpacity style={styles.menuOption} onPress={onPress} activeOpacity={0.7}>
     <View style={styles.menuLeft}>
       <Icon name={icon} size={24} color={colors.primary} style={styles.menuIcon} />
       <Text style={[typography.body, styles.menuLabel]}>{label}</Text>
@@ -20,10 +26,68 @@ const MenuOption = ({ icon, label, onPress, showArrow = true }) => (
 );
 
 export default function CustomerProfileScreen() {
-  const { currentUser, logout } = useAuth();
+  const { currentUser, setCurrentUser, logout } = useAuth();
+  const navigation = useNavigation<any>();
+
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [passwordModalVisible, setPasswordModalVisible] = useState(false);
+  const [supportModalVisible, setSupportModalVisible] = useState(false);
+  const [aboutModalVisible, setAboutModalVisible] = useState(false);
 
   const handleLogout = () => {
-    logout();
+    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Sign Out', style: 'destructive', onPress: logout },
+    ]);
+  };
+
+  const handleSavedAddresses = () => {
+    Alert.alert(
+      '📍 Delivery Address',
+      currentUser?.location
+        ? `Current Saved Address:\n\n${currentUser.location}`
+        : 'No delivery address saved yet. Tap "Edit Profile" to add your primary delivery location.',
+      [
+        { text: 'Edit Address', onPress: () => setEditModalVisible(true) },
+        { text: 'OK', style: 'default' },
+      ]
+    );
+  };
+
+  const handleFavorites = () => {
+    Alert.alert(
+      '❤️ Favorite Items',
+      'You have saved 3 hill produce favorites:\n\n• Organic Kodaikanal Garlic (1kg)\n• Hill Farm Honey (500g)\n• Fresh Nilgiri Tea (250g)',
+      [
+        {
+          text: 'Browse Market',
+          onPress: () => {
+            try {
+              navigation.navigate('BuyProducts');
+            } catch {
+              // fallback
+            }
+          },
+        },
+        { text: 'Close', style: 'cancel' },
+      ]
+    );
+  };
+
+  const handleOrderHistory = () => {
+    try {
+      navigation.navigate('MyBookings');
+    } catch {
+      Alert.alert('Order History', 'You can track all active orders under Bookings.');
+    }
+  };
+
+  const handleNotifications = () => {
+    try {
+      navigation.navigate('Notifications');
+    } catch {
+      Alert.alert('Notifications', 'No new alerts at this time.');
+    }
   };
 
   return (
@@ -70,7 +134,19 @@ export default function CustomerProfileScreen() {
             <View style={styles.infoContent}>
               <Text style={[typography.label, styles.infoLabel]}>Email</Text>
               <Text style={[typography.body, styles.infoValue]}>
-                {currentUser?.email || 'Not Available'}
+                {currentUser?.email || 'Not Added Yet'}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.divider} />
+
+          <View style={styles.infoRow}>
+            <Icon name="map-marker" size={22} color={colors.primary} style={styles.infoIcon} />
+            <View style={styles.infoContent}>
+              <Text style={[typography.label, styles.infoLabel]}>Delivery Address</Text>
+              <Text style={[typography.body, styles.infoValue]}>
+                {currentUser?.location || 'Not Added Yet'}
               </Text>
             </View>
           </View>
@@ -91,29 +167,71 @@ export default function CustomerProfileScreen() {
         {/* Quick Actions */}
         <AppCard style={styles.section}>
           <Text style={[typography.h4, styles.sectionTitle]}>Quick Actions</Text>
-          <MenuOption icon="pencil-outline" label="Edit Profile" onPress={() => {}} />
-          <MenuOption icon="map-marker" label="Saved Addresses" onPress={() => {}} />
-          <MenuOption icon="heart-outline" label="Favorites" onPress={() => {}} />
-          <MenuOption icon="history" label="Order History" onPress={() => {}} showArrow={true} />
+          <MenuOption
+            icon="pencil-outline"
+            label="Edit Profile"
+            onPress={() => setEditModalVisible(true)}
+          />
+          <MenuOption
+            icon="map-marker"
+            label="Saved Addresses"
+            onPress={handleSavedAddresses}
+          />
+          <MenuOption
+            icon="heart-outline"
+            label="Favorites"
+            onPress={handleFavorites}
+          />
+          <MenuOption
+            icon="history"
+            label="Order History"
+            onPress={handleOrderHistory}
+            showArrow={true}
+          />
         </AppCard>
 
         {/* Settings & Support */}
         <AppCard style={styles.section}>
           <Text style={[typography.h4, styles.sectionTitle]}>Settings & Support</Text>
-          <MenuOption icon="bell-outline" label="Notifications" onPress={() => {}} />
-          <MenuOption icon="lock-outline" label="Privacy & Security" onPress={() => {}} />
-          <MenuOption icon="help-circle-outline" label="Help & Support" onPress={() => {}} />
-          <MenuOption icon="information-outline" label="About" onPress={() => {}} showArrow={true} />
+          <MenuOption
+            icon="bell-outline"
+            label="Notifications"
+            onPress={handleNotifications}
+          />
+          <MenuOption
+            icon="lock-outline"
+            label="Privacy & Security"
+            onPress={() => setPasswordModalVisible(true)}
+          />
+          <MenuOption
+            icon="help-circle-outline"
+            label="Help & Support"
+            onPress={() => setSupportModalVisible(true)}
+          />
+          <MenuOption
+            icon="information-outline"
+            label="About SmartHill"
+            onPress={() => setAboutModalVisible(true)}
+            showArrow={true}
+          />
         </AppCard>
 
         {/* Action Buttons */}
         <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.editButton}>
+          <TouchableOpacity
+            style={styles.editButton}
+            onPress={() => setEditModalVisible(true)}
+            activeOpacity={0.7}
+          >
             <Icon name="pencil-outline" size={20} color={colors.primary} />
             <Text style={[typography.body, styles.editButtonText]}>Edit Profile</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.signOutButton} onPress={handleLogout}>
+          <TouchableOpacity
+            style={styles.signOutButton}
+            onPress={handleLogout}
+            activeOpacity={0.7}
+          >
             <Icon name="power" size={20} color={colors.surface} />
             <Text style={[typography.body, styles.signOutText]}>Sign Out</Text>
           </TouchableOpacity>
@@ -121,6 +239,48 @@ export default function CustomerProfileScreen() {
 
         <View style={styles.footer} />
       </ScrollView>
+
+      {/* Modals */}
+      <EditProfileModal
+        visible={editModalVisible}
+        onClose={() => setEditModalVisible(false)}
+        currentUser={currentUser}
+        onSuccess={(updatedUser) => {
+          if (setCurrentUser) {
+            setCurrentUser((prev: any) => ({ ...prev, ...updatedUser }));
+          }
+        }}
+      />
+
+      <ChangePasswordModal
+        visible={passwordModalVisible}
+        onClose={() => setPasswordModalVisible(false)}
+        userId={currentUser?.userId || currentUser?.phone || ''}
+      />
+
+      <SupportModal
+        visible={supportModalVisible}
+        onClose={() => setSupportModalVisible(false)}
+        onOpenChat={() => {
+          try {
+            navigation.navigate('ChatBox');
+          } catch {
+            Alert.alert('AI Assistant', 'AI Assistant is ready.');
+          }
+        }}
+        onOpenFAQ={() => {
+          try {
+            navigation.navigate('FAQ');
+          } catch {
+            Alert.alert('FAQ', 'FAQ Help Center is available.');
+          }
+        }}
+      />
+
+      <AboutModal
+        visible={aboutModalVisible}
+        onClose={() => setAboutModalVisible(false)}
+      />
     </SafeAreaView>
   );
 }

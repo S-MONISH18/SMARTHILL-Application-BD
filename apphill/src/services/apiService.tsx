@@ -216,3 +216,25 @@ export const getProducts = async () => {
 export const getUsers = async () => {
   return request('/users');
 };
+
+//////////////////////////////////////////////////////
+// 👤 PROFILE & ACCOUNT
+//////////////////////////////////////////////////////
+
+export const updateProfile = async (data: {
+  userId: string;
+  name?: string;
+  location?: string;
+  email?: string;
+}) => {
+  return request('/update-profile', 'POST', data);
+};
+
+export const changePassword = async (data: {
+  userId: string;
+  oldPassword: string;
+  newPassword: string;
+}) => {
+  return request('/change-password', 'POST', data);
+};
+

@@ -1,11 +1,10 @@
 /* eslint-disable react/no-unstable-nested-components */
 import React from 'react';
-import { Text } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import colors from '../theme/colors';
-import typography from '../theme/typography';
+import { TabIcon, TabLabel } from '../components/TabBarItem';
 
 // Screens
 import FarmerDashboardScreen from '../screens/farmer/FarmerDashboardScreen';
@@ -17,10 +16,10 @@ import FarmerProfileScreen from '../screens/farmer/FarmerProfileScreen';
 // 🔥 Booking screen
 import BookTractorScreen from '../screens/tractorOwner/BookTractorScreen';
 
-// � Register Tractor (farmers can now register too!)
+// 🚜 Register Tractor (farmers can now register too!)
 import RegisterTractorScreen from '../screens/tractorOwner/RegisterTractorScreen';
 
-// �🔔 Notifications
+// 🔔 Notifications
 import NotificationsScreen from '../screens/common/NotificationsScreen';
 
 // 🛒 NEW: Farmer Orders
@@ -37,13 +36,6 @@ import CropPredictionScreen from '../screens/farmer/CropPredictionScreen';
 
 const Tab = createBottomTabNavigator<any>();
 const Stack = createNativeStackNavigator<any>();
-
-//////////////////////////////////////////////////////
-// TAB ICON
-//////////////////////////////////////////////////////
-const TabIcon = ({ symbol, color }: { symbol?: any; color?: any }) => (
-  <Text style={{ fontSize: 18, color }}>{symbol}</Text>
-);
 
 //////////////////////////////////////////////////////
 // 🚜 TRACTOR STACK
@@ -82,9 +74,18 @@ export default function FarmerTabNavigator() {
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textSecondary,
-        tabBarLabelStyle: {
-          ...typography.caption,
-          fontSize: 11,
+        tabBarStyle: {
+          height: 64,
+          paddingTop: 6,
+          paddingBottom: 8,
+          backgroundColor: '#FFFFFF',
+          borderTopWidth: 1,
+          borderTopColor: '#E8F5E9',
+          elevation: 10,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.08,
+          shadowRadius: 5,
         },
       }}
     >
@@ -93,10 +94,8 @@ export default function FarmerTabNavigator() {
         name="FarmerHome"
         component={FarmerDashboardScreen}
         options={{
-          tabBarLabel: 'Home',
-          tabBarIcon: ({ color }) => (
-            <TabIcon symbol="🏠" color={color} />
-          ),
+          tabBarLabel: ({ focused }) => <TabLabel label="Home" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon symbol="🏠" focused={focused} />,
         }}
       />
 
@@ -105,10 +104,8 @@ export default function FarmerTabNavigator() {
         name="FarmData"
         component={FarmDataScreen}
         options={{
-          tabBarLabel: 'Farm',
-          tabBarIcon: ({ color }) => (
-            <TabIcon symbol="📊" color={color} />
-          ),
+          tabBarLabel: ({ focused }) => <TabLabel label="Farm" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon symbol="📊" focused={focused} />,
         }}
       />
 
@@ -117,34 +114,28 @@ export default function FarmerTabNavigator() {
         name="Tractors"
         component={TractorStack}
         options={{
-          tabBarLabel: 'Tractors',
-          tabBarIcon: ({ color }) => (
-            <TabIcon symbol="🚜" color={color} />
-          ),
+          tabBarLabel: ({ focused }) => <TabLabel label="Tractors" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon symbol="🚜" focused={focused} />,
         }}
       />
 
-      {/* 🛒 ORDERS (🔥 IMPORTANT NEW) */}
+      {/* 📦 ORDERS */}
       <Tab.Screen
         name="Orders"
         component={FarmerOrderRequestsScreen}
         options={{
-          tabBarLabel: 'Orders',
-          tabBarIcon: ({ color }) => (
-            <TabIcon symbol="📦" color={color} />
-          ),
+          tabBarLabel: ({ focused }) => <TabLabel label="Orders" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon symbol="📦" focused={focused} />,
         }}
       />
 
-      {/* � SELL */}
+      {/* 🛒 SELL */}
       <Tab.Screen
         name="SellProducts"
         component={SellProductsScreen}
         options={{
-          tabBarLabel: 'Sell',
-          tabBarIcon: ({ color }) => (
-            <TabIcon symbol="🛒" color={color} />
-          ),
+          tabBarLabel: ({ focused }) => <TabLabel label="Sell" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon symbol="🛒" focused={focused} />,
         }}
       />
 
@@ -153,10 +144,8 @@ export default function FarmerTabNavigator() {
         name="FarmerProfile"
         component={FarmerProfileScreen}
         options={{
-          tabBarLabel: 'Profile',
-          tabBarIcon: ({ color }) => (
-            <TabIcon symbol="👤" color={color} />
-          ),
+          tabBarLabel: ({ focused }) => <TabLabel label="Profile" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon symbol="👤" focused={focused} />,
         }}
       />
 

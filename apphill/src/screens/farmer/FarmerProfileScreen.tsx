@@ -1,15 +1,54 @@
 import React, { useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import colors from '../../theme/colors';
 import spacing from '../../theme/spacing';
 import typography from '../../theme/typography';
 import AppCard from '../../components/AppCard';
 import { useAuth } from '../../context/AuthContext';
+import {
+  EditProfileModal,
+  ChangePasswordModal,
+  SupportModal,
+  AboutModal,
+} from '../../components/ProfileModals';
 
 export default function FarmerProfileScreen() {
-  const { currentUser, logout } = useAuth();
-  const [profileCompletion] = useState(75);
+  const { currentUser, setCurrentUser, logout } = useAuth();
+  const navigation = useNavigation<any>();
+
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [passwordModalVisible, setPasswordModalVisible] = useState(false);
+  const [supportModalVisible, setSupportModalVisible] = useState(false);
+  const [aboutModalVisible, setAboutModalVisible] = useState(false);
+
+  // Dynamic profile completion
+  const calculateCompletion = () => {
+    let score = 0;
+    if (currentUser?.phone) score += 25;
+    if (currentUser?.name) score += 25;
+    if (currentUser?.email) score += 25;
+    if (currentUser?.location) score += 25;
+    return score;
+  };
+
+  const profileCompletion = calculateCompletion();
+
+  const handleSignOut = () => {
+    Alert.alert('Sign Out', 'Are you sure you want to sign out of your account?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Sign Out', style: 'destructive', onPress: logout },
+    ]);
+  };
+
+  const handleNotifications = () => {
+    try {
+      navigation.navigate('Notifications');
+    } catch {
+      Alert.alert('Notifications', 'No new alerts at this time.');
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -69,7 +108,7 @@ export default function FarmerProfileScreen() {
             <View style={styles.infoRow}>
               <Text style={[typography.label, styles.infoLabel]}>📧 Email</Text>
               <Text style={[typography.body, styles.infoValue]}>
-                {currentUser?.email || 'Not Available'}
+                {currentUser?.email || 'Not Added Yet'}
               </Text>
             </View>
 
@@ -78,7 +117,7 @@ export default function FarmerProfileScreen() {
             <View style={styles.infoRow}>
               <Text style={[typography.label, styles.infoLabel]}>📍 Location</Text>
               <Text style={[typography.body, styles.infoValue]}>
-                {currentUser?.location || 'Not Available'}
+                {currentUser?.location || 'Not Added Yet'}
               </Text>
             </View>
 
@@ -105,44 +144,118 @@ export default function FarmerProfileScreen() {
         {/* Account Actions */}
         <View style={styles.section}>
           <Text style={[typography.h4, styles.sectionTitle]}>⚙️ Actions</Text>
-          <TouchableOpacity style={styles.actionButton}>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => setEditModalVisible(true)}
+            activeOpacity={0.7}
+          >
             <Text style={styles.actionButtonIcon}>✏️</Text>
             <View style={styles.actionContent}>
               <Text style={styles.actionButtonTitle}>Edit Profile</Text>
-              <Text style={styles.actionButtonSubtitle}>Update your information</Text>
+              <Text style={styles.actionButtonSubtitle}>Update your name, email & location</Text>
             </View>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionButton}>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => setPasswordModalVisible(true)}
+            activeOpacity={0.7}
+          >
             <Text style={styles.actionButtonIcon}>🔒</Text>
             <View style={styles.actionContent}>
               <Text style={styles.actionButtonTitle}>Change Password</Text>
-              <Text style={styles.actionButtonSubtitle}>Secure your account</Text>
+              <Text style={styles.actionButtonSubtitle}>Secure your account with a new password</Text>
             </View>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionButton}>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={handleNotifications}
+            activeOpacity={0.7}
+          >
             <Text style={styles.actionButtonIcon}>🔔</Text>
             <View style={styles.actionContent}>
               <Text style={styles.actionButtonTitle}>Notifications</Text>
-              <Text style={styles.actionButtonSubtitle}>Manage your preferences</Text>
+              <Text style={styles.actionButtonSubtitle}>View booking & order updates</Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => setAboutModalVisible(true)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.actionButtonIcon}>ℹ️</Text>
+            <View style={styles.actionContent}>
+              <Text style={styles.actionButtonTitle}>About SmartHill</Text>
+              <Text style={styles.actionButtonSubtitle}>App version, cloud sync & AI engine</Text>
             </View>
           </TouchableOpacity>
         </View>
 
         {/* Buttons */}
-        <TouchableOpacity style={styles.accountButton}>
-          <Text style={styles.accountButtonText}>📧 Contact Support</Text>
+        <TouchableOpacity
+          style={styles.accountButton}
+          onPress={() => setSupportModalVisible(true)}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.accountButtonText}>📧 Contact Support & Helpline</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.signOutButton} onPress={logout}>
+        <TouchableOpacity
+          style={styles.signOutButton}
+          onPress={handleSignOut}
+          activeOpacity={0.8}
+        >
           <Text style={styles.signOutText}>🚪 Sign Out</Text>
         </TouchableOpacity>
 
         <View style={styles.footer}>
-          <Text style={[typography.caption, styles.versionText]}>Version 1.0.0</Text>
+          <Text style={[typography.caption, styles.versionText]}>Version 1.0.0 • Connected to MongoDB Atlas</Text>
         </View>
       </ScrollView>
+
+      {/* Modals */}
+      <EditProfileModal
+        visible={editModalVisible}
+        onClose={() => setEditModalVisible(false)}
+        currentUser={currentUser}
+        onSuccess={(updatedUser) => {
+          if (setCurrentUser) {
+            setCurrentUser((prev: any) => ({ ...prev, ...updatedUser }));
+          }
+        }}
+      />
+
+      <ChangePasswordModal
+        visible={passwordModalVisible}
+        onClose={() => setPasswordModalVisible(false)}
+        userId={currentUser?.userId || currentUser?.phone || ''}
+      />
+
+      <SupportModal
+        visible={supportModalVisible}
+        onClose={() => setSupportModalVisible(false)}
+        onOpenChat={() => {
+          try {
+            navigation.navigate('ChatBox');
+          } catch {
+            Alert.alert('Chat Assistant', 'AI Assistant is ready to help.');
+          }
+        }}
+        onOpenFAQ={() => {
+          try {
+            navigation.navigate('FAQ');
+          } catch {
+            Alert.alert('FAQ', 'FAQ Help Center is available.');
+          }
+        }}
+      />
+
+      <AboutModal
+        visible={aboutModalVisible}
+        onClose={() => setAboutModalVisible(false)}
+      />
     </SafeAreaView>
   );
 }

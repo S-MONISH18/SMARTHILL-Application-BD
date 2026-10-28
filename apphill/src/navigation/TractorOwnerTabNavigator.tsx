@@ -1,11 +1,10 @@
 /* eslint-disable react/no-unstable-nested-components */
 import React from 'react';
-import { Text } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import colors from '../theme/colors';
-import typography from '../theme/typography';
+import { TabIcon, TabLabel } from '../components/TabBarItem';
 
 // Screens
 import TractorOwnerDashboardScreen from '../screens/tractorOwner/TractorOwnerDashboardScreen';
@@ -23,10 +22,6 @@ import FAQScreen from '../screens/common/FAQScreen';
 
 const Tab = createBottomTabNavigator<any>();
 const Stack = createNativeStackNavigator<any>();
-
-const TabIcon = ({ symbol, color }: { symbol?: any; color?: any }) => (
-  <Text style={{ fontSize: 18, color }}>{symbol}</Text>
-);
 
 //////////////////////////////////////////////////////
 // 🔥 STACK for MyTractors → BookTractor
@@ -59,9 +54,18 @@ export default function TractorOwnerTabNavigator() {
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textSecondary,
-        tabBarLabelStyle: {
-          ...typography.caption,
-          fontSize: 11,
+        tabBarStyle: {
+          height: 64,
+          paddingTop: 6,
+          paddingBottom: 8,
+          backgroundColor: '#FFFFFF',
+          borderTopWidth: 1,
+          borderTopColor: '#E8F5E9',
+          elevation: 10,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.08,
+          shadowRadius: 5,
         },
       }}
     >
@@ -69,8 +73,8 @@ export default function TractorOwnerTabNavigator() {
         name="TractorOwnerHome"
         component={TractorOwnerDashboardScreen}
         options={{
-          tabBarLabel: 'Home',
-          tabBarIcon: ({ color }) => <TabIcon symbol="🏠" color={color} />,
+          tabBarLabel: ({ focused }) => <TabLabel label="Home" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon symbol="🏠" focused={focused} />,
         }}
       />
 
@@ -78,18 +82,17 @@ export default function TractorOwnerTabNavigator() {
         name="RegisterTractor"
         component={RegisterTractorScreen}
         options={{
-          tabBarLabel: 'Register',
-          tabBarIcon: ({ color }) => <TabIcon symbol="➕" color={color} />,
+          tabBarLabel: ({ focused }) => <TabLabel label="Register" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon symbol="➕" focused={focused} />,
         }}
       />
 
-      {/* 🔥 IMPORTANT CHANGE HERE */}
       <Tab.Screen
         name="Tractors"
         component={MyTractorStack}
         options={{
-          tabBarLabel: 'Tractors',
-          tabBarIcon: ({ color }) => <TabIcon symbol="🚜" color={color} />,
+          tabBarLabel: ({ focused }) => <TabLabel label="Tractors" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon symbol="🚜" focused={focused} />,
         }}
       />
 
@@ -97,8 +100,17 @@ export default function TractorOwnerTabNavigator() {
         name="RentalRequests"
         component={RentalRequestsScreen}
         options={{
-          tabBarLabel: 'Requests',
-          tabBarIcon: ({ color }) => <TabIcon symbol="📩" color={color} />,
+          tabBarLabel: ({ focused }) => <TabLabel label="Requests" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon symbol="📩" focused={focused} />,
+        }}
+      />
+
+      <Tab.Screen
+        name="TractorOwnerProfile"
+        component={TractorOwnerProfileScreen}
+        options={{
+          tabBarLabel: ({ focused }) => <TabLabel label="Profile" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon symbol="👤" focused={focused} />,
         }}
       />
 
@@ -115,15 +127,6 @@ export default function TractorOwnerTabNavigator() {
         component={ChatBoxScreen}
         options={{
           tabBarItemStyle: { display: 'none' },
-        }}
-      />
-
-      <Tab.Screen
-        name="TractorOwnerProfile"
-        component={TractorOwnerProfileScreen}
-        options={{
-          tabBarLabel: 'Profile',
-          tabBarIcon: ({ color }) => <TabIcon symbol="👤" color={color} />,
         }}
       />
     </Tab.Navigator>

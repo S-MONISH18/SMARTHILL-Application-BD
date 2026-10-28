@@ -1,10 +1,9 @@
 /* eslint-disable react/no-unstable-nested-components */
 import React from 'react';
-import { Text } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
 import colors from '../theme/colors';
-import typography from '../theme/typography';
+import { TabIcon, TabLabel } from '../components/TabBarItem';
 
 // Screens
 import CustomerDashboardScreen from '../screens/customer/CustomerDashboardScreen';
@@ -25,13 +24,6 @@ import FAQScreen from '../screens/common/FAQScreen';
 const Tab = createBottomTabNavigator<any>();
 
 //////////////////////////////////////////////////////
-// TAB ICON
-//////////////////////////////////////////////////////
-const TabIcon = ({ symbol, color }: { symbol?: any; color?: any }) => (
-  <Text style={{ fontSize: 18, color }}>{symbol}</Text>
-);
-
-//////////////////////////////////////////////////////
 // NAVIGATOR
 //////////////////////////////////////////////////////
 export default function CustomerTabNavigator() {
@@ -43,9 +35,18 @@ export default function CustomerTabNavigator() {
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textSecondary,
-        tabBarLabelStyle: {
-          ...typography.caption,
-          fontSize: 11,
+        tabBarStyle: {
+          height: 64,
+          paddingTop: 6,
+          paddingBottom: 8,
+          backgroundColor: '#FFFFFF',
+          borderTopWidth: 1,
+          borderTopColor: '#E8F5E9',
+          elevation: 10,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.08,
+          shadowRadius: 5,
         },
       }}
     >
@@ -54,10 +55,8 @@ export default function CustomerTabNavigator() {
         name="CustomerHome"
         component={CustomerDashboardScreen}
         options={{
-          tabBarLabel: 'Home',
-          tabBarIcon: ({ color }) => (
-            <TabIcon symbol="🏠" color={color} />
-          ),
+          tabBarLabel: ({ focused }) => <TabLabel label="Home" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon symbol="🏠" focused={focused} />,
         }}
       />
 
@@ -66,10 +65,8 @@ export default function CustomerTabNavigator() {
         name="BuyProducts"
         component={BuyProductsScreen}
         options={{
-          tabBarLabel: 'Products',
-          tabBarIcon: ({ color }) => (
-            <TabIcon symbol="🛍️" color={color} />
-          ),
+          tabBarLabel: ({ focused }) => <TabLabel label="Products" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon symbol="🛍️" focused={focused} />,
         }}
       />
 
@@ -78,10 +75,8 @@ export default function CustomerTabNavigator() {
         name="CustomerRentTractor"
         component={RentTractorScreen}
         options={{
-          tabBarLabel: 'Tractors',
-          tabBarIcon: ({ color }) => (
-            <TabIcon symbol="🚜" color={color} />
-          ),
+          tabBarLabel: ({ focused }) => <TabLabel label="Tractors" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon symbol="🚜" focused={focused} />,
         }}
       />
 
@@ -90,10 +85,8 @@ export default function CustomerTabNavigator() {
         name="MyBookings"
         component={MyCustomerBookingsScreen}
         options={{
-          tabBarLabel: 'Bookings',
-          tabBarIcon: ({ color }) => (
-            <TabIcon symbol="📄" color={color} />
-          ),
+          tabBarLabel: ({ focused }) => <TabLabel label="Bookings" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon symbol="📄" focused={focused} />,
         }}
       />
 
@@ -102,10 +95,18 @@ export default function CustomerTabNavigator() {
         name="Notifications"
         component={NotificationsScreen}
         options={{
-          tabBarLabel: 'Alerts',
-          tabBarIcon: ({ color }) => (
-            <TabIcon symbol="🔔" color={color} />
-          ),
+          tabBarLabel: ({ focused }) => <TabLabel label="Alerts" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon symbol="🔔" focused={focused} />,
+        }}
+      />
+
+      {/* PROFILE */}
+      <Tab.Screen
+        name="CustomerProfile"
+        component={CustomerProfileScreen}
+        options={{
+          tabBarLabel: ({ focused }) => <TabLabel label="Profile" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon symbol="👤" focused={focused} />,
         }}
       />
 
@@ -124,18 +125,6 @@ export default function CustomerTabNavigator() {
         component={ChatBoxScreen}
         options={{
           tabBarItemStyle: { display: 'none' },
-        }}
-      />
-
-      {/* PROFILE */}
-      <Tab.Screen
-        name="CustomerProfile"
-        component={CustomerProfileScreen}
-        options={{
-          tabBarLabel: 'Profile',
-          tabBarIcon: ({ color }) => (
-            <TabIcon symbol="👤" color={color} />
-          ),
         }}
       />
     </Tab.Navigator>

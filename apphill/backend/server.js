@@ -1,4 +1,6 @@
-require('dotenv').config({ path: __dirname + '/.env' });
+const path = require('path');
+const { Buffer } = require('buffer');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 console.log("🔥 SERVER STARTING...");
 
@@ -232,6 +234,101 @@ app.post('/login', authLimiter, async (req, res) => {
     });
   } catch (err) {
     console.error('🔥 LOGIN ERROR:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+//////////////////////////////////////////////////////
+// 👤 PROFILE: UPDATE PROFILE
+//////////////////////////////////////////////////////
+app.post('/update-profile', async (req, res) => {
+  try {
+    const { userId, name, location, email } = req.body || {};
+    if (!userId) {
+      return res.status(400).json({ success: false, message: 'userId is required' });
+    }
+
+    const updates = {};
+    if (name !== undefined) updates.name = name.toString().trim();
+    if (location !== undefined) updates.location = location.toString().trim();
+    if (email !== undefined) updates.email = email.toString().trim();
+
+    let updatedUser = null;
+    if (isDBConnected()) {
+      updatedUser = await User.findOneAndUpdate(
+        { $or: [{ userId }, { phone: userId }] },
+        { $set: updates },
+        { new: true }
+      ).lean();
+    } else {
+      const user = inMemoryUsers.find((u) => u.userId === userId || u.phone === userId);
+      if (user) {
+        Object.assign(user, updates);
+        updatedUser = user;
+      }
+    }
+
+    if (!updatedUser) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    console.log(`✅ Profile updated for ${userId}`);
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      user: sanitizeUser(updatedUser),
+    });
+  } catch (err) {
+    console.error('🔥 UPDATE PROFILE ERROR:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+//////////////////////////////////////////////////////
+// 🔒 AUTH: CHANGE PASSWORD
+//////////////////////////////////////////////////////
+app.post('/change-password', async (req, res) => {
+  try {
+    const { userId, oldPassword, newPassword } = req.body || {};
+    if (!userId || !oldPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'userId, oldPassword, and newPassword are required',
+      });
+    }
+
+    let user = null;
+    if (isDBConnected()) {
+      user = await User.findOne({ $or: [{ userId }, { phone: userId }] });
+    } else {
+      user = inMemoryUsers.find((u) => u.userId === userId || u.phone === userId);
+    }
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const isMatch =
+      user.password === oldPassword.toString() ||
+      (await bcrypt.compare(oldPassword.toString(), user.password));
+
+    if (!isMatch) {
+      return res.status(401).json({ success: false, message: 'Current password is incorrect' });
+    }
+
+    const newHashed = await bcrypt.hash(newPassword.toString(), 10);
+
+    if (isDBConnected()) {
+      user.password = newHashed;
+      await user.save();
+    } else {
+      user.password = newHashed;
+    }
+
+    console.log(`✅ Password changed successfully for ${userId}`);
+    res.json({ success: true, message: 'Password updated successfully' });
+  } catch (err) {
+    console.error('🔥 CHANGE PASSWORD ERROR:', err);
     res.status(500).json({ success: false, error: err.message });
   }
 });
